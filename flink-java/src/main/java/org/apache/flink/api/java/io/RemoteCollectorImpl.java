@@ -1,4 +1,6 @@
-/*
+package org.apache.flink.api.java.io;
+
+/**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -16,54 +18,41 @@
  * limitations under the License.
  */
 
-package org.apache.flink.api.java.io;
-
+import java.io.IOException;
 import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.ServerSocket;
-import java.rmi.AccessException;
+import java.net.SocketException;
 import java.rmi.AlreadyBoundException;
-import java.rmi.NotBoundException;
-import java.rmi.Remote;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Enumeration;
-import java.util.List;
-import java.util.UUID;
 
 import org.apache.flink.api.common.io.OutputFormat;
 import org.apache.flink.api.java.DataSet;
 import org.apache.flink.api.java.operators.DataSink;
+import org.apache.flink.configuration.Configuration;
 
 /**
  * This class provides a counterpart implementation for the
  * {@link RemoteCollectorOutputFormat}.
  */
 
-public class RemoteCollectorImpl<T> extends UnicastRemoteObject implements
-		RemoteCollector<T> {
+public class RemoteCollectorImpl<T> extends UnicastRemoteObject implements IRemoteCollector<T>{
 
 	private static final long serialVersionUID = 1L;
 
 	/**
-	 * Instance of an implementation of a {@link RemoteCollectorConsumer}. This
+	 * Instance of an implementation of a {@link IRemoteCollectorConsumer}. This
 	 * instance will get the records passed.
 	 */
 
-	private RemoteCollectorConsumer<T> consumer;
-	
-        /**
-         * This list stores all created {@link Registry}s to unbind and unexport all
-         * exposed {@link Remote} objects ({@link RemoteCollectorConsumer} in our
-         * case) in the shutdown phase.
-         */
-	private static List<Registry> registries = new ArrayList<Registry>();
+	private IRemoteCollectorConsumer<T> consumer;
 
 	/**
 	 * This factory method creates an instance of the
@@ -74,21 +63,21 @@ public class RemoteCollectorImpl<T> extends UnicastRemoteObject implements
 	 *            The port where the local colector is listening.
 	 * @param consumer
 	 *            The consumer instance.
-	 * @param rmiId 
-	 * 	          An ID to register the collector in the RMI registry.
+	 * @return
 	 */
-	public static <T> void createAndBind(Integer port, RemoteCollectorConsumer<T> consumer, String rmiId) {
+	public static <T> void createAndBind(Integer port, IRemoteCollectorConsumer<T> consumer) {
 		RemoteCollectorImpl<T> collectorInstance = null;
 
 		try {
 			collectorInstance = new RemoteCollectorImpl<T>();
+		} catch (RemoteException e) {
+			e.printStackTrace();
+		}
 
-			Registry registry;
-
+		Registry registry;
+		try {
 			registry = LocateRegistry.createRegistry(port);
-			registry.bind(rmiId, collectorInstance);
-			
-			registries.add(registry);
+			registry.bind(RemoteCollectorOutputFormat.ID, collectorInstance);
 		} catch (RemoteException e) {
 			e.printStackTrace();
 		} catch (AlreadyBoundException e) {
@@ -97,35 +86,30 @@ public class RemoteCollectorImpl<T> extends UnicastRemoteObject implements
 
 		collectorInstance.setConsumer(consumer);
 	}
-
+	
 	/**
-	 * Writes a DataSet to a {@link RemoteCollectorConsumer} through an
-	 * {@link RemoteCollector} remotely called from the
+	 * Writes a DataSet to a {@link IRemoteCollectorConsumer} through an
+	 * {@link IRemoteCollector} remotely called from the
 	 * {@link RemoteCollectorOutputFormat}.<br/>
 	 * 
 	 * @return The DataSink that writes the DataSet.
 	 */
-	public static <T> DataSink<T> collectLocal(DataSet<T> source,
-			RemoteCollectorConsumer<T> consumer) {
+	public static <T> DataSink<T> collectLocal(DataSet<T> source, IRemoteCollectorConsumer<T> consumer) {
 		// if the RMI parameter was not set by the user make a "good guess"
 		String ip = System.getProperty("java.rmi.server.hostname");
 		if (ip == null) {
 			Enumeration<NetworkInterface> networkInterfaces = null;
 			try {
 				networkInterfaces = NetworkInterface.getNetworkInterfaces();
-			} catch (Throwable t) {
-				throw new RuntimeException(t);
+			} catch (SocketException e) {
+				e.printStackTrace();
 			}
 			while (networkInterfaces.hasMoreElements()) {
-				NetworkInterface networkInterface = (NetworkInterface) networkInterfaces
-						.nextElement();
-				Enumeration<InetAddress> inetAddresses = networkInterface
-						.getInetAddresses();
+				NetworkInterface networkInterface = (NetworkInterface) networkInterfaces.nextElement();
+				Enumeration<InetAddress> inetAddresses = networkInterface.getInetAddresses();
 				while (inetAddresses.hasMoreElements()) {
-					InetAddress inetAddress = (InetAddress) inetAddresses
-							.nextElement();
-					if (!inetAddress.isLoopbackAddress()
-							&& inetAddress instanceof Inet4Address) {
+					InetAddress inetAddress = (InetAddress) inetAddresses.nextElement();
+					if (!inetAddress.isLoopbackAddress() && inetAddress instanceof Inet4Address) {
 						ip = inetAddress.getHostAddress();
 						System.setProperty("java.rmi.server.hostname", ip);
 					}
@@ -139,18 +123,20 @@ public class RemoteCollectorImpl<T> extends UnicastRemoteObject implements
 			ServerSocket tmp = new ServerSocket(0);
 			randomPort = tmp.getLocalPort();
 			tmp.close();
-		} catch (Throwable t) {
-			throw new RuntimeException(t);
+		} catch (IOException e) {
+			e.printStackTrace();
 		}
 
-		// create an ID for this output format instance
-		String rmiId = String.format("%s-%s", RemoteCollectorOutputFormat.class.getName(), UUID.randomUUID());
-		
 		// create the local listening object and bind it to the RMI registry
-		RemoteCollectorImpl.createAndBind(randomPort, consumer, rmiId);
+		RemoteCollectorImpl.createAndBind(randomPort, consumer);
 
 		// create and configure the output format
-		OutputFormat<T> remoteCollectorOutputFormat = new RemoteCollectorOutputFormat<T>(ip, randomPort, rmiId);
+		OutputFormat<T> remoteCollectorOutputFormat = new RemoteCollectorOutputFormat<T>();
+
+		Configuration remoteCollectorConfiguration = new Configuration();
+		remoteCollectorConfiguration.setString(RemoteCollectorOutputFormat.REMOTE, ip);
+		remoteCollectorConfiguration.setInteger(RemoteCollectorOutputFormat.PORT, randomPort);
+		remoteCollectorOutputFormat.configure(remoteCollectorConfiguration);
 
 		// create sink
 		return source.output(remoteCollectorOutputFormat);
@@ -158,18 +144,17 @@ public class RemoteCollectorImpl<T> extends UnicastRemoteObject implements
 
 	/**
 	 * Writes a DataSet to a local {@link Collection} through an
-	 * {@link RemoteCollector} and a standard {@link RemoteCollectorConsumer}
+	 * {@link IRemoteCollector} and a standard {@link IRemoteCollectorConsumer}
 	 * implementation remotely called from the
 	 * {@link RemoteCollectorOutputFormat}.<br/>
 	 * 
-	 * @param source the source data set
-	 * @param collection the local collection
+	 * @param local
+	 * @param port
+	 * @param collection
 	 */
-	public static <T> void collectLocal(DataSet<T> source,
-			Collection<T> collection) {
-		final Collection<T> synchronizedCollection = Collections
-				.synchronizedCollection(collection);
-		collectLocal(source, new RemoteCollectorConsumer<T>() {
+	public static <T> void collectLocal(DataSet<T> source, Collection<T> collection) {
+		final Collection<T> synchronizedCollection = Collections.synchronizedCollection(collection);
+		collectLocal(source, new IRemoteCollectorConsumer<T>() {
 			@Override
 			public void collect(T element) {
 				synchronizedCollection.add(element);
@@ -179,7 +164,6 @@ public class RemoteCollectorImpl<T> extends UnicastRemoteObject implements
 
 	/**
 	 * Necessary private default constructor.
-	 * 
 	 * @throws RemoteException
 	 */
 	private RemoteCollectorImpl() throws RemoteException {
@@ -195,30 +179,12 @@ public class RemoteCollectorImpl<T> extends UnicastRemoteObject implements
 	}
 
 	@Override
-	public RemoteCollectorConsumer<T> getConsumer() {
+	public IRemoteCollectorConsumer<T> getConsumer() {
 		return this.consumer;
 	}
 
 	@Override
-	public void setConsumer(RemoteCollectorConsumer<T> consumer) {
+	public void setConsumer(IRemoteCollectorConsumer<T> consumer) {
 		this.consumer = consumer;
-	}
-
-	/**
-	 * This method unbinds and unexports all exposed {@link Remote} objects
-	 * 
-	 * @throws AccessException
-	 * @throws RemoteException
-	 * @throws NotBoundException
-	 */
-	public static void shutdownAll() throws AccessException, RemoteException, NotBoundException {
-		for (Registry registry : registries) {
-			for (String id : registry.list()) {
-				Remote remote = registry.lookup(id);
-				registry.unbind(id);
-				UnicastRemoteObject.unexportObject(remote, true);
-			}
-
-		}
 	}
 }
