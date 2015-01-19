@@ -223,6 +223,18 @@ public class TaskConfig {
 	// ---------------------------------- Miscellaneous -------------------------------------------
 	
 	private static final char SEPARATOR = '.';
+	
+	// ---------------------------  ------- Statistics ----------- --------------------------------
+	
+	private static final String STATISTICAL_METRICS_NUM = "stats.num";
+	
+	private static final String STATISTICAL_METRICS_TYPE_PREFIX = "stats.type.";
+	
+	private static final String STATISTICAL_METRICS_NUM_FIELDS_PREFIX = "stats.fields.num.";
+	
+	private static final String STATISTICAL_METRICS_FIELD_INDEX_PREFIX = "stats.field.index.";
+	
+	private static final String STATISTICAL_METRICS_FIELD_TYPE_PREFIX = "stats.field.type.";
 
 	// --------------------------------------------------------------------------------------------
 	//                         Members, Constructors, and Accessors
@@ -1145,6 +1157,24 @@ public class TaskConfig {
 	
 	public boolean isSolutionSetUnmanaged() {
 		return config.getBoolean(SOLUTION_SET_OBJECTS, false);
+	}
+	
+	// --------------------------------------------------------------------------------------------
+	//                                     Statistics
+	// --------------------------------------------------------------------------------------------
+	
+	public void addStatisticalMetric(int[] fields, Class<?>[] types, StatisticalMetricType type) {
+		if(fields.length != types.length) {
+			throw new IllegalArgumentException(String.format("The number of fields has to match the number of types, but %d fields and %d types were given", fields.length, types.length));
+		}
+		int metricId = config.getInteger(STATISTICAL_METRICS_NUM, 0);
+		config.setInteger(STATISTICAL_METRICS_TYPE_PREFIX + metricId, type.ordinal());
+		config.setInteger(STATISTICAL_METRICS_NUM_FIELDS_PREFIX + metricId, fields.length);
+		for(int i = 0; i < fields.length; i++) {
+			config.setInteger(STATISTICAL_METRICS_FIELD_INDEX_PREFIX + metricId + SEPARATOR  + i, fields[i]);
+			config.setString(STATISTICAL_METRICS_FIELD_TYPE_PREFIX + metricId + SEPARATOR  + i, types[i].getCanonicalName());
+		}
+		config.setInteger(STATISTICAL_METRICS_NUM, metricId + 1);
 	}
 	
 	// --------------------------------------------------------------------------------------------
