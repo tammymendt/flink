@@ -33,22 +33,17 @@ public class StatisticsCollectorWrapper<T> implements Collector<T> {
     private String fieldName;
     private Class<T> recordType;
 
-    private OperatorStatistics stats = null;
+    private final OperatorStatistics stats;
 
-    StatisticsCollectorWrapper(Collector<T> collector) {
+    public StatisticsCollectorWrapper(Collector<T> collector, OperatorStatisticsConfig config) {
         this.collector = collector;
-    }
-
-    public void initStatistics(OperatorStatisticsConfig config) {
         this.stats = new OperatorStatistics(config);
     }
 
     @Override
     public void collect(T record) {
         collector.collect(record);
-        if (stats != null) {
-            stats.process(record);
-        }
+        stats.process(record);
     }
 
     @Override

@@ -49,20 +49,13 @@ import org.apache.flink.runtime.messages.JobManagerMessages;
 import org.apache.flink.runtime.operators.chaining.ChainedDriver;
 import org.apache.flink.runtime.operators.chaining.ExceptionInChainedStubException;
 import org.apache.flink.runtime.operators.resettable.SpillingResettableMutableObjectIterator;
-import org.apache.flink.runtime.operators.shipping.OutputCollector;
-import org.apache.flink.runtime.operators.shipping.OutputEmitter;
-import org.apache.flink.runtime.operators.shipping.RecordOutputCollector;
-import org.apache.flink.runtime.operators.shipping.RecordOutputEmitter;
-import org.apache.flink.runtime.operators.shipping.ShipStrategyType;
+import org.apache.flink.runtime.operators.shipping.*;
 import org.apache.flink.runtime.operators.sort.CombiningUnilateralSortMerger;
 import org.apache.flink.runtime.operators.sort.UnilateralSortMerger;
-import org.apache.flink.runtime.operators.util.CloseableInputProvider;
-import org.apache.flink.runtime.operators.util.DistributedRuntimeUDFContext;
-import org.apache.flink.runtime.operators.util.LocalStrategy;
-import org.apache.flink.runtime.operators.util.ReaderIterator;
-import org.apache.flink.runtime.operators.util.TaskConfig;
+import org.apache.flink.runtime.operators.util.*;
 import org.apache.flink.runtime.plugable.DeserializationDelegate;
 import org.apache.flink.runtime.plugable.SerializationDelegate;
+import org.apache.flink.statistics.OperatorStatisticsConfig;
 import org.apache.flink.types.Record;
 import org.apache.flink.util.Collector;
 import org.apache.flink.util.InstantiationUtil;
@@ -1268,6 +1261,14 @@ public class RegularPactTask<S extends Function, OT> extends AbstractInvokable i
 			return null;
 		}
 
+		// TODO: how about multiple operator stats?
+		OperatorStatisticsConfig opStatsConfig = null;
+		for (int i = 0; i < config.getStatisticsCount(); i++) {
+			if (config.getStatisticsType(i).equals("operator")) {
+				opStatsConfig = config.getOperatorStatisticsConfig(i);
+			}
+		}
+
 		// get the factory for the serializer
 		final TypeSerializerFactory<T> serializerFactory = config.getOutputSerializer(cl);
 
@@ -1302,7 +1303,10 @@ public class RegularPactTask<S extends Function, OT> extends AbstractInvokable i
 			}
 
 			@SuppressWarnings("unchecked")
-			final Collector<T> outColl = (Collector<T>) new RecordOutputCollector(writers);
+			Collector<T> outColl = (Collector<T>) new RecordOutputCollector(writers);
+			if (opStatsConfig != null) {
+				outColl = new StatisticsCollectorWrapper<T>(outColl, opStatsConfig);
+			}
 			return outColl;
 		}
 		else {
@@ -1333,7 +1337,11 @@ public class RegularPactTask<S extends Function, OT> extends AbstractInvokable i
 			if (eventualOutputs != null) {
 				eventualOutputs.addAll(writers);
 			}
-			return new OutputCollector<T>(writers, serializerFactory.getSerializer());
+			Collector<T> result = new OutputCollector<T>(writers, serializerFactory.getSerializer());
+			if (opStatsConfig != null) {
+				result = new StatisticsCollectorWrapper(result, opStatsConfig);
+			}
+			return result;
 		}
 	}
 

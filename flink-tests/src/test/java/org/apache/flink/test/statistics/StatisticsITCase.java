@@ -26,11 +26,7 @@ import org.apache.flink.api.java.record.functions.MapFunction;
 import org.apache.flink.api.java.record.io.CsvInputFormat;
 import org.apache.flink.api.java.record.io.CsvOutputFormat;
 import org.apache.flink.core.fs.Path;
-import org.apache.flink.runtime.jobgraph.AbstractJobVertex;
-import org.apache.flink.runtime.jobgraph.DistributionPattern;
-import org.apache.flink.runtime.jobgraph.InputFormatVertex;
-import org.apache.flink.runtime.jobgraph.JobGraph;
-import org.apache.flink.runtime.jobgraph.OutputFormatVertex;
+import org.apache.flink.runtime.jobgraph.*;
 import org.apache.flink.runtime.jobmanager.scheduler.SlotSharingGroup;
 import org.apache.flink.runtime.operators.CollectorMapDriver;
 import org.apache.flink.runtime.operators.DriverStrategy;
@@ -115,7 +111,7 @@ public class StatisticsITCase extends RecordAPITestBase {
 			taskConfig.setInputLocalStrategy(0, LocalStrategy.NONE);
 			taskConfig.setInputSerializer(serializer, 0);
 
-			//
+			taskConfig.addOperatorStatistics(Record.class, new String[]{"f0", "f1"});
 		}
 
 		return pointsInput;

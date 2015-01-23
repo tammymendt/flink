@@ -19,18 +19,6 @@
 
 package org.apache.flink.runtime.operators.util;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-
 import org.apache.flink.api.common.aggregators.Aggregator;
 import org.apache.flink.api.common.aggregators.AggregatorWithName;
 import org.apache.flink.api.common.aggregators.ConvergenceCriterion;
@@ -50,8 +38,12 @@ import org.apache.flink.runtime.operators.DriverStrategy;
 import org.apache.flink.runtime.operators.PactDriver;
 import org.apache.flink.runtime.operators.chaining.ChainedDriver;
 import org.apache.flink.runtime.operators.shipping.ShipStrategyType;
+import org.apache.flink.statistics.OperatorStatisticsConfig;
 import org.apache.flink.types.Value;
 import org.apache.flink.util.InstantiationUtil;
+
+import java.io.*;
+import java.util.*;
 
 /**
  * Configuration class which stores all relevant parameters required to set up the Pact tasks.
@@ -225,16 +217,12 @@ public class TaskConfig {
 	private static final char SEPARATOR = '.';
 	
 	// ---------------------------  ------- Statistics ----------- --------------------------------
-	
-	private static final String STATISTICAL_METRICS_NUM = "stats.num";
-	
-	private static final String STATISTICAL_METRICS_TYPE_PREFIX = "stats.type.";
-	
-	private static final String STATISTICAL_METRICS_NUM_FIELDS_PREFIX = "stats.fields.num.";
-	
-	private static final String STATISTICAL_METRICS_FIELD_INDEX_PREFIX = "stats.field.index.";
-	
-	private static final String STATISTICAL_METRICS_FIELD_TYPE_PREFIX = "stats.field.type.";
+
+	private static final String STATISTICS_NUM = "stats.num";
+
+	private static final String STATISTICAS_TYPE_PREFIX = "stats.type.";
+
+	private static final String STATISTICAS_CONFIG_PREFIX = "stats.config.";
 
 	// --------------------------------------------------------------------------------------------
 	//                         Members, Constructors, and Accessors
@@ -1162,19 +1150,48 @@ public class TaskConfig {
 	// --------------------------------------------------------------------------------------------
 	//                                     Statistics
 	// --------------------------------------------------------------------------------------------
-	
-	public void addStatisticalMetric(int[] fields, Class<?>[] types, StatisticalMetricType type) {
-		if(fields.length != types.length) {
-			throw new IllegalArgumentException(String.format("The number of fields has to match the number of types, but %d fields and %d types were given", fields.length, types.length));
+
+	public void addOperatorStatistics(Class<?> recordType, String[] fields) {
+		int statisId = config.getInteger(STATISTICS_NUM, 0);
+		config.setString(STATISTICAS_TYPE_PREFIX + statisId, "operator");
+		String configString = recordType.getCanonicalName();
+		for (String field : fields) {
+			configString += "," + field;
 		}
-		int metricId = config.getInteger(STATISTICAL_METRICS_NUM, 0);
-		config.setInteger(STATISTICAL_METRICS_TYPE_PREFIX + metricId, type.ordinal());
-		config.setInteger(STATISTICAL_METRICS_NUM_FIELDS_PREFIX + metricId, fields.length);
-		for(int i = 0; i < fields.length; i++) {
-			config.setInteger(STATISTICAL_METRICS_FIELD_INDEX_PREFIX + metricId + SEPARATOR  + i, fields[i]);
-			config.setString(STATISTICAL_METRICS_FIELD_TYPE_PREFIX + metricId + SEPARATOR  + i, types[i].getCanonicalName());
+		config.setString(STATISTICAS_CONFIG_PREFIX + statisId, configString);
+		config.setInteger(STATISTICS_NUM, statisId + 1);
+	}
+
+	public int getStatisticsCount() {
+		return config.getInteger(STATISTICS_NUM, 0);
+	}
+
+	public String getStatisticsType(int i) {
+		return config.getString(STATISTICAS_TYPE_PREFIX + i, null);
+	}
+
+	public OperatorStatisticsConfig getOperatorStatisticsConfig(int i) {
+		OperatorStatisticsConfig result = null;
+		String configString = config.getString(STATISTICAS_CONFIG_PREFIX + i, null);
+		if (configString != null) {
+			String[] configStringParts = configString.split(",");
+			Class<?> recordType = null;
+			List<String> fields = new ArrayList<String>();
+			for (int j = 0; j < configStringParts.length; j++) {
+				if (j == 0) {
+					try {
+						recordType = Class.forName(configStringParts[i]);
+					} catch (ClassNotFoundException e) {
+					}
+				} else {
+					fields.add(configStringParts[i]);
+				}
+			}
+			if (recordType != null && !fields.isEmpty()) {
+				result = new OperatorStatisticsConfig(recordType, fields.toArray(new String[fields.size()]));
+			}
 		}
-		config.setInteger(STATISTICAL_METRICS_NUM, metricId + 1);
+		return result;
 	}
 	
 	// --------------------------------------------------------------------------------------------
