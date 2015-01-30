@@ -177,23 +177,32 @@ public class BasicTypeInfo<T> extends TypeInformation<T> implements AtomicType<T
 	static {
 		TYPES.put(String.class, STRING_TYPE_INFO);
 		TYPES.put(Boolean.class, BOOLEAN_TYPE_INFO);
+		TYPES.put(scala.Boolean.class, BOOLEAN_TYPE_INFO);
 		TYPES.put(boolean.class, BOOLEAN_TYPE_INFO);
 		TYPES.put(Byte.class, BYTE_TYPE_INFO);
+		TYPES.put(scala.Byte.class, BYTE_TYPE_INFO);
 		TYPES.put(byte.class, BYTE_TYPE_INFO);
 		TYPES.put(Short.class, SHORT_TYPE_INFO);
+		TYPES.put(scala.Short.class, SHORT_TYPE_INFO);
 		TYPES.put(short.class, SHORT_TYPE_INFO);
 		TYPES.put(Integer.class, INT_TYPE_INFO);
+		TYPES.put(scala.Int.class, INT_TYPE_INFO);
 		TYPES.put(int.class, INT_TYPE_INFO);
 		TYPES.put(Long.class, LONG_TYPE_INFO);
+		TYPES.put(scala.Long.class, LONG_TYPE_INFO);
 		TYPES.put(long.class, LONG_TYPE_INFO);
 		TYPES.put(Float.class, FLOAT_TYPE_INFO);
+		TYPES.put(scala.Float.class, FLOAT_TYPE_INFO);
 		TYPES.put(float.class, FLOAT_TYPE_INFO);
 		TYPES.put(Double.class, DOUBLE_TYPE_INFO);
+		TYPES.put(scala.Double.class, DOUBLE_TYPE_INFO);
 		TYPES.put(double.class, DOUBLE_TYPE_INFO);
 		TYPES.put(Character.class, CHAR_TYPE_INFO);
+		TYPES.put(scala.Char.class, CHAR_TYPE_INFO);
 		TYPES.put(char.class, CHAR_TYPE_INFO);
 		TYPES.put(Date.class, DATE_TYPE_INFO);
 		TYPES.put(Void.class, VOID_TYPE_INFO);
+		TYPES.put(scala.Unit.class, VOID_TYPE_INFO);
 		TYPES.put(void.class, VOID_TYPE_INFO);
 	}
 }

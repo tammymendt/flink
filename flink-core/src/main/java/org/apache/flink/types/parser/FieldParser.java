@@ -147,6 +147,14 @@ public abstract class FieldParser<T> {
 			new HashMap<Class<?>, Class<? extends FieldParser<?>>>();
 	
 	static {
+		// Scala basic types (using the companion classes here as classOf[T] returns the underlying primitive class)
+		PARSERS.put(scala.Byte$.class, ByteParser.class);
+		PARSERS.put(scala.Short$.class, ShortParser.class);
+		PARSERS.put(scala.Int$.class, IntParser.class);
+		PARSERS.put(scala.Long$.class, LongParser.class);
+		PARSERS.put(scala.Float$.class, FloatParser.class);
+		PARSERS.put(scala.Double$.class, DoubleParser.class);
+
 		// basic types
 		PARSERS.put(Byte.class, ByteParser.class);
 		PARSERS.put(Short.class, ShortParser.class);
