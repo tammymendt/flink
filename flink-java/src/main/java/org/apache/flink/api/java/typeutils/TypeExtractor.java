@@ -565,15 +565,16 @@ public class TypeExtractor {
 			if (typeInfo.isBasicType()) {
 				
 				TypeInformation<?> actual = null;
-				// check if basic type at all
-				if (!(type instanceof Class<?>) || (actual = BasicTypeInfo.getInfoFor((Class<?>) type)) == null) {
-					throw new InvalidTypesException("Basic type expected.");
+				if (type != (Type) Object.class) {
+					// check if basic type at all
+					if (!(type instanceof Class<?>) || (actual = BasicTypeInfo.getInfoFor((Class<?>) type)) == null) {
+						throw new InvalidTypesException("Basic type expected.");
+					}
+					// check if correct basic type
+					if (!typeInfo.equals(actual)) {
+						throw new InvalidTypesException("Basic type '" + typeInfo + "' expected but was '" + actual + "'.");
+					}
 				}
-				// check if correct basic type
-				if (!typeInfo.equals(actual)) {
-					throw new InvalidTypesException("Basic type '" + typeInfo + "' expected but was '" + actual + "'.");
-				}
-				
 			}
 			// check for tuple
 			else if (typeInfo.isTupleType()) {
