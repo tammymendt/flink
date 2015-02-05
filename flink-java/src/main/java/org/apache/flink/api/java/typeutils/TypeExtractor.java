@@ -551,7 +551,7 @@ public class TypeExtractor {
 	
 	@SuppressWarnings("unchecked")
 	private static void validateInfo(ArrayList<Type> typeHierarchy, Type type, TypeInformation<?> typeInfo) {
-		
+
 		if (type == null) {
 			throw new InvalidTypesException("Unknown Error. Type is null.");
 		}
@@ -577,7 +577,7 @@ public class TypeExtractor {
 				}
 			}
 			// check for tuple
-			else if (typeInfo.isTupleType()) {
+			else if (typeInfo.isTupleType() && false) {
 				// check if tuple at all
 				if (!(isClassType(type) && Tuple.class.isAssignableFrom(typeToClass(type)))) {
 					throw new InvalidTypesException("Tuple type expected.");
