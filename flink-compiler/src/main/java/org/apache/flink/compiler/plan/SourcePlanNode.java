@@ -19,17 +19,17 @@
 
 package org.apache.flink.compiler.plan;
 
-import static org.apache.flink.compiler.plan.PlanNode.SourceAndDamReport.FOUND_SOURCE;
-import static org.apache.flink.compiler.plan.PlanNode.SourceAndDamReport.NOT_FOUND;
-
-import java.util.Collections;
-
 import org.apache.flink.api.common.typeutils.TypeSerializerFactory;
 import org.apache.flink.compiler.dag.DataSourceNode;
 import org.apache.flink.compiler.dataproperties.GlobalProperties;
 import org.apache.flink.compiler.dataproperties.LocalProperties;
 import org.apache.flink.runtime.operators.DriverStrategy;
 import org.apache.flink.util.Visitor;
+
+import java.util.Collections;
+
+import static org.apache.flink.compiler.plan.PlanNode.SourceAndDamReport.FOUND_SOURCE;
+import static org.apache.flink.compiler.plan.PlanNode.SourceAndDamReport.NOT_FOUND;
 
 /**
  * Plan candidate node for data flow sources that have no input and no special strategies.
@@ -44,13 +44,17 @@ public class SourcePlanNode extends PlanNode {
 	 * @param template The template optimizer node that this candidate is created for.
 	 */
 	public SourcePlanNode(DataSourceNode template, String nodeName) {
+		this(template, nodeName, new GlobalProperties(), new LocalProperties());
+	}
+
+	public SourcePlanNode(DataSourceNode template, String nodeName, GlobalProperties gprops, LocalProperties lprops) {
 		super(template, nodeName, DriverStrategy.NONE);
-		
-		this.globalProps = new GlobalProperties();
-		this.localProps = new LocalProperties();
+
+		this.globalProps = gprops;
+		this.localProps = lprops;
 		updatePropertiesWithUniqueSets(template.getUniqueFields());
 	}
-	
+
 	// --------------------------------------------------------------------------------------------
 	
 	public DataSourceNode getDataSourceNode() {
