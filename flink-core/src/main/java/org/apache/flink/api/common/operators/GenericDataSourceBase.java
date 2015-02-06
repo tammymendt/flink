@@ -19,9 +19,7 @@
 
 package org.apache.flink.api.common.operators;
 
-import java.util.ArrayList;
-import java.util.List;
-
+import org.apache.flink.api.common.functions.Partitioner;
 import org.apache.flink.api.common.io.InputFormat;
 import org.apache.flink.api.common.operators.util.UserCodeClassWrapper;
 import org.apache.flink.api.common.operators.util.UserCodeObjectWrapper;
@@ -29,6 +27,9 @@ import org.apache.flink.api.common.operators.util.UserCodeWrapper;
 import org.apache.flink.api.common.typeutils.TypeSerializer;
 import org.apache.flink.core.io.InputSplit;
 import org.apache.flink.util.Visitor;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Abstract superclass for data sources in a Pact plan.
@@ -43,6 +44,14 @@ public class GenericDataSourceBase<OUT, T extends InputFormat<OUT, ?>> extends O
 	protected final UserCodeWrapper<? extends T> formatWrapper;
 
 	protected String statisticsKey;
+
+	private int[] splitPartitionKeys;
+
+	private Partitioner<OUT> splitPartitioner;
+
+	private int[] splitGroupKeys;
+
+	private Ordering splitOrder;
 
 	/**
 	 * Creates a new instance for the given file using the given input format.
@@ -156,7 +165,37 @@ public class GenericDataSourceBase<OUT, T extends InputFormat<OUT, ?>> extends O
 	public void setStatisticsKey(String statisticsKey) {
 		this.statisticsKey = statisticsKey;
 	}
-	
+
+	public void setSplitProperties(int[] splitPartitionKeys, Partitioner<OUT> splitPartitioner,
+									int[] splitGroupKeys,Ordering splitOrder) {
+
+		if(splitGroupKeys != null && splitOrder != null) {
+			throw new IllegalArgumentException("Either split grouping or order keys may be defined");
+		}
+
+		this.splitPartitionKeys = splitPartitionKeys;
+		this.splitPartitioner = splitPartitioner;
+		this.splitGroupKeys = splitGroupKeys;
+		this.splitOrder = splitOrder;
+
+	}
+
+	public int[] getSplitPartitionKeys() {
+		return this.splitPartitionKeys;
+	}
+
+	public Partitioner<OUT> getSplitPartitioner() {
+		return splitPartitioner;
+	}
+
+	public int[] getSplitGroupKeys() {
+		return this.splitGroupKeys;
+	}
+
+	public Ordering getSplitOrder() {
+		return this.splitOrder;
+	}
+
 	// --------------------------------------------------------------------------------------------
 	
 	/**

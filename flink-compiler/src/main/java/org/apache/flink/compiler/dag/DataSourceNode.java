@@ -19,25 +19,30 @@
 
 package org.apache.flink.compiler.dag;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-
+import org.apache.flink.api.common.functions.Partitioner;
 import org.apache.flink.api.common.io.FileInputFormat;
 import org.apache.flink.api.common.io.InputFormat;
 import org.apache.flink.api.common.io.NonParallelInput;
 import org.apache.flink.api.common.io.statistics.BaseStatistics;
 import org.apache.flink.api.common.operators.GenericDataSourceBase;
 import org.apache.flink.api.common.operators.Operator;
+import org.apache.flink.api.common.operators.Ordering;
+import org.apache.flink.api.common.operators.util.FieldList;
 import org.apache.flink.compiler.DataStatistics;
 import org.apache.flink.compiler.PactCompiler;
 import org.apache.flink.compiler.costs.CostEstimator;
 import org.apache.flink.compiler.costs.Costs;
+import org.apache.flink.compiler.dataproperties.GlobalProperties;
+import org.apache.flink.compiler.dataproperties.LocalProperties;
 import org.apache.flink.compiler.plan.PlanNode;
 import org.apache.flink.compiler.plan.SourcePlanNode;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.util.Visitor;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 
 /**
  * The optimizer's internal representation of a data source.
@@ -45,6 +50,10 @@ import org.apache.flink.util.Visitor;
 public class DataSourceNode extends OptimizerNode {
 	
 	private final boolean sequentialInput;
+
+	private final GlobalProperties gprops;
+
+	private final LocalProperties lprops;
 
 	/**
 	 * Creates a new DataSourceNode for the given contract.
@@ -64,6 +73,29 @@ public class DataSourceNode extends OptimizerNode {
 			this.sequentialInput = true;
 		} else {
 			this.sequentialInput = false;
+		}
+
+		// set global properties
+		this.gprops = new GlobalProperties();
+		int[] partitionKeys = pactContract.getSplitPartitionKeys();
+		Partitioner<?> partitioner = pactContract.getSplitPartitioner();
+
+		if(partitionKeys != null && partitioner != null) {
+			this.gprops.setCustomPartitioned(new FieldList(partitionKeys), partitioner);
+		}
+		else if(partitionKeys != null) {
+			this.gprops.setAnyPartitioning(new FieldList(partitionKeys));
+		}
+
+		// set local properties
+		int[] groupKeys = pactContract.getSplitGroupKeys();
+		Ordering order = pactContract.getSplitOrder();
+		if(groupKeys != null) {
+			this.lprops = LocalProperties.forGrouping(new FieldList(groupKeys));
+		} else if(order != null) {
+			this.lprops = LocalProperties.forOrdering(order);
+		} else {
+			this.lprops = new LocalProperties();
 		}
 	}
 
