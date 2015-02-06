@@ -23,12 +23,13 @@ import org.apache.flink.api.common.functions.FlatMapFunction;
 import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.common.functions.MapPartitionFunction;
 import org.apache.flink.api.common.functions.ReduceFunction;
-import org.apache.flink.api.common.operators.Order;
-import org.apache.flink.api.java.DataSet;
 import org.apache.flink.api.java.ExecutionEnvironment;
+import org.apache.flink.api.java.io.SplitDataProperties;
+import org.apache.flink.api.java.operators.DataSource;
 import org.apache.flink.api.java.operators.translation.JavaPlan;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.tuple.Tuple3;
+import org.apache.flink.compiler.plan.DualInputPlanNode;
 import org.apache.flink.compiler.plan.OptimizedPlan;
 import org.apache.flink.compiler.plan.SingleInputPlanNode;
 import org.apache.flink.compiler.plan.SinkPlanNode;
@@ -51,8 +52,14 @@ public class PropertyDataSourceTest extends CompilerTestBase {
 		ExecutionEnvironment env = ExecutionEnvironment.createLocalEnvironment();
 		env.setDegreeOfParallelism(DEFAULT_PARALLELISM);
 
-		DataSet<Tuple2<Long, String>> data =
-				env.readCsvFile("/some/path").types(Long.class, String.class).partitionedBy(new int[]{0});
+		DataSource<Tuple2<Long, String>> data =
+				env.readCsvFile("/some/path").types(Long.class, String.class);
+
+		data.setSplitDataProperties(
+				new SplitDataProperties<Tuple2<Long, String>>(data.getType())
+						.splitsPartitionedBy(0)
+		);
+
 
 		data.groupBy(0).reduce(new LastReduce<Tuple2<Long, String>>())
 				.print();
@@ -86,47 +93,14 @@ public class PropertyDataSourceTest extends CompilerTestBase {
 		ExecutionEnvironment env = ExecutionEnvironment.createLocalEnvironment();
 		env.setDegreeOfParallelism(DEFAULT_PARALLELISM);
 
-		DataSet<Tuple2<Long, String>> data =
-				env.readCsvFile("/some/path").types(Long.class, String.class)
-						.partitionedBy(new int[]{0})
-						.splitsGroupedBy(new int[]{0});
+		DataSource<Tuple2<Long, String>> data =
+				env.readCsvFile("/some/path").types(Long.class, String.class);
 
-		data.groupBy(0).reduce(new LastReduce<Tuple2<Long, String>>())
-				.print();
-
-		JavaPlan plan = env.createProgramPlan();
-
-		// submit the plan to the compiler
-		OptimizedPlan oPlan = compileNoStats(plan);
-
-		// check the optimized Plan
-		// when join should have forward strategy on both sides
-		SinkPlanNode sinkNode = oPlan.getDataSinks().iterator().next();
-		SingleInputPlanNode reduceNode = (SingleInputPlanNode) sinkNode.getPredecessor();
-
-		ShipStrategyType reduceSS = reduceNode.getInput().getShipStrategy();
-		LocalStrategy reduceLS = reduceNode.getInput().getLocalStrategy();
-		DriverStrategy reducerDS = reduceNode.getDriverStrategy();
-
-		Assert.assertEquals("Invalid ship strategy for an operator.", ShipStrategyType.FORWARD, reduceSS);
-		Assert.assertEquals("Invalid local strategy for an operator.", LocalStrategy.NONE, reduceLS);
-		Assert.assertEquals("Invalid driver strategy for an operator", DriverStrategy.SORTED_REDUCE, reducerDS);
-
-	}
-
-	/**
-	 * Tests reduce on partitioned and sorted data source
-	 */
-	@Test
-	public void checkReduceOnPartitionedSortedSource() {
-
-		ExecutionEnvironment env = ExecutionEnvironment.createLocalEnvironment();
-		env.setDegreeOfParallelism(DEFAULT_PARALLELISM);
-
-		DataSet<Tuple2<Long, String>> data =
-				env.readCsvFile("/some/path").types(Long.class, String.class)
-						.partitionedBy(new int[]{0})
-						.splitsOrderedBy(new int[]{0}, new Order[]{Order.DESCENDING});
+		data.setSplitDataProperties(
+				new SplitDataProperties<Tuple2<Long, String>>(data.getType())
+					.splitsPartitionedBy(0)
+					.splitsGroupedBy(0)
+		);
 
 		data.groupBy(0).reduce(new LastReduce<Tuple2<Long, String>>())
 				.print();
@@ -161,9 +135,13 @@ public class PropertyDataSourceTest extends CompilerTestBase {
 		ExecutionEnvironment env = ExecutionEnvironment.createLocalEnvironment();
 		env.setDegreeOfParallelism(DEFAULT_PARALLELISM);
 
-		DataSet<Tuple3<Long, String, Integer>> data =
-				env.readCsvFile("/some/path").types(Long.class, String.class, Integer.class)
-						.partitionedBy(new int[]{1});
+		DataSource<Tuple3<Long, String, Integer>> data =
+				env.readCsvFile("/some/path").types(Long.class, String.class, Integer.class);
+
+		data.setSplitDataProperties(
+				new SplitDataProperties<Tuple3<Long, String, Integer>>(data.getType())
+						.splitsPartitionedBy(1)
+		);
 
 		data.groupBy(2, 1).reduce(new LastReduce<Tuple3<Long, String, Integer>>())
 				.print();
@@ -197,10 +175,14 @@ public class PropertyDataSourceTest extends CompilerTestBase {
 		ExecutionEnvironment env = ExecutionEnvironment.createLocalEnvironment();
 		env.setDegreeOfParallelism(DEFAULT_PARALLELISM);
 
-		DataSet<Tuple3<Long, String, Integer>> data =
-				env.readCsvFile("/some/path").types(Long.class, String.class, Integer.class)
-						.partitionedBy(new int[]{1})
-						.splitsOrderedBy(new int[]{2,1,0}, new Order[]{Order.ASCENDING, Order.DESCENDING, Order.DESCENDING});
+		DataSource<Tuple3<Long, String, Integer>> data =
+				env.readCsvFile("/some/path").types(Long.class, String.class, Integer.class);
+
+		data.setSplitDataProperties(
+				new SplitDataProperties<Tuple3<Long, String, Integer>>(data.getType())
+						.splitsPartitionedBy(1)
+						.splitsGroupedBy(2, 1, 0)
+		);
 
 		data.groupBy(2, 1).reduce(new LastReduce<Tuple3<Long, String, Integer>>())
 				.print();
@@ -225,7 +207,141 @@ public class PropertyDataSourceTest extends CompilerTestBase {
 
 	}
 
+	/**
+	 * Tests join on two equivalently partitioned data sources
+	 */
+	@Test
+	public void checkColocatedPartitionedJoin() {
 
+		ExecutionEnvironment env = ExecutionEnvironment.createLocalEnvironment();
+		env.setDegreeOfParallelism(DEFAULT_PARALLELISM);
+
+		DataSource<Tuple3<Long, String, Integer>> data1 =
+				env.readCsvFile("/some/path").types(Long.class, String.class, Integer.class);
+
+		data1.setSplitDataProperties(
+				new SplitDataProperties<Tuple3<Long, String, Integer>>(data1.getType())
+						.splitsPartitionedBy("filesByDate", 1)
+		);
+
+		DataSource<Tuple2<String, Double>> data2 =
+				env.readCsvFile("/some/other/path").types(String.class, Double.class);
+
+		data2.setSplitDataProperties(
+				new SplitDataProperties<Tuple2<String, Double>>(data2.getType())
+						.splitsPartitionedBy("filesByDate", 0)
+		);
+
+		data1.join(data2).where(1).equalTo(0).print();
+
+		JavaPlan plan = env.createProgramPlan();
+
+		// submit the plan to the compiler
+		OptimizedPlan oPlan = compileNoStats(plan);
+
+		// check the optimized Plan
+		// when join should have forward strategy on both sides
+		SinkPlanNode sinkNode = oPlan.getDataSinks().iterator().next();
+		DualInputPlanNode joinNode = (DualInputPlanNode) sinkNode.getPredecessor();
+
+		ShipStrategyType joinSS1 = joinNode.getInput1().getShipStrategy();
+		ShipStrategyType joinSS2 = joinNode.getInput2().getShipStrategy();
+
+		Assert.assertEquals("Invalid ship strategy for an operator.", ShipStrategyType.FORWARD, joinSS1);
+		Assert.assertEquals("Invalid ship strategy for an operator.", ShipStrategyType.FORWARD, joinSS2);
+
+	}
+
+
+	/**
+	 * Tests join on two not-equivalently partitioned data sources
+	 */
+	@Test
+	public void checkInvalidColocatedPartitionedJoin1() {
+
+		ExecutionEnvironment env = ExecutionEnvironment.createLocalEnvironment();
+		env.setDegreeOfParallelism(DEFAULT_PARALLELISM);
+
+		DataSource<Tuple3<Long, String, Integer>> data1 =
+				env.readCsvFile("/some/path").types(Long.class, String.class, Integer.class);
+
+		data1.setSplitDataProperties(
+				new SplitDataProperties<Tuple3<Long, String, Integer>>(data1.getType())
+						.splitsPartitionedBy("filesByData", 1)
+		);
+
+		DataSource<Tuple2<String, Double>> data2 =
+				env.readCsvFile("/some/other/path").types(String.class, Double.class);
+
+		data2.setSplitDataProperties(
+				new SplitDataProperties<Tuple2<String, Double>>(data2.getType())
+						.splitsPartitionedBy("filesByLocation", 0)
+		);
+
+		data1.join(data2).where(1).equalTo(0).print();
+
+		JavaPlan plan = env.createProgramPlan();
+
+		// submit the plan to the compiler
+		OptimizedPlan oPlan = compileNoStats(plan);
+
+		// check the optimized Plan
+		// when join should have forward strategy on both sides
+		SinkPlanNode sinkNode = oPlan.getDataSinks().iterator().next();
+		DualInputPlanNode joinNode = (DualInputPlanNode) sinkNode.getPredecessor();
+
+		ShipStrategyType joinSS1 = joinNode.getInput1().getShipStrategy();
+		ShipStrategyType joinSS2 = joinNode.getInput2().getShipStrategy();
+
+		Assert.assertTrue("Invalid ship strategy for an operator.",
+				!((ShipStrategyType.FORWARD == joinSS1) && (ShipStrategyType.FORWARD == joinSS2)));
+
+	}
+
+	/**
+	 * Tests join on two not-equivalently partitioned data sources
+	 */
+	@Test
+	public void checkInvalidColocatedPartitionedJoin2() {
+
+		ExecutionEnvironment env = ExecutionEnvironment.createLocalEnvironment();
+		env.setDegreeOfParallelism(DEFAULT_PARALLELISM);
+
+		DataSource<Tuple3<Long, String, Integer>> data1 =
+				env.readCsvFile("/some/path").types(Long.class, String.class, Integer.class);
+
+		data1.setSplitDataProperties(
+				new SplitDataProperties<Tuple3<Long, String, Integer>>(data1.getType())
+						.splitsPartitionedBy("filesByData", 2)
+		);
+
+		DataSource<Tuple2<String, Double>> data2 =
+				env.readCsvFile("/some/other/path").types(String.class, Double.class);
+
+		data2.setSplitDataProperties(
+				new SplitDataProperties<Tuple2<String, Double>>(data2.getType())
+						.splitsPartitionedBy("filesByDate", 0)
+		);
+
+		data1.join(data2).where(1).equalTo(0).print();
+
+		JavaPlan plan = env.createProgramPlan();
+
+		// submit the plan to the compiler
+		OptimizedPlan oPlan = compileNoStats(plan);
+
+		// check the optimized Plan
+		// when join should have forward strategy on both sides
+		SinkPlanNode sinkNode = oPlan.getDataSinks().iterator().next();
+		DualInputPlanNode joinNode = (DualInputPlanNode) sinkNode.getPredecessor();
+
+		ShipStrategyType joinSS1 = joinNode.getInput1().getShipStrategy();
+		ShipStrategyType joinSS2 = joinNode.getInput2().getShipStrategy();
+
+		Assert.assertTrue("Invalid ship strategy for an operator.",
+				!((ShipStrategyType.FORWARD == joinSS1) && (ShipStrategyType.FORWARD == joinSS2)));
+
+	}
 
 	public static class IdMap<T> implements MapFunction<T,T> {
 

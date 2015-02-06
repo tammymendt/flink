@@ -25,6 +25,7 @@ import org.apache.flink.api.common.io.InputFormat;
 import org.apache.flink.api.common.io.NonParallelInput;
 import org.apache.flink.api.common.io.statistics.BaseStatistics;
 import org.apache.flink.api.common.operators.GenericDataSourceBase;
+import org.apache.flink.api.common.operators.GenericDataSourceBase.SplitDataProperties;
 import org.apache.flink.api.common.operators.Operator;
 import org.apache.flink.api.common.operators.Ordering;
 import org.apache.flink.api.common.operators.util.FieldList;
@@ -75,28 +76,111 @@ public class DataSourceNode extends OptimizerNode {
 			this.sequentialInput = false;
 		}
 
-		// set global properties
+		SplitDataProperties<?> splitProps = pactContract.getSplitDataProperties();
 		this.gprops = new GlobalProperties();
-		int[] partitionKeys = pactContract.getSplitPartitionKeys();
-		Partitioner<?> partitioner = pactContract.getSplitPartitioner();
 
-		if(partitionKeys != null && partitioner != null) {
-			this.gprops.setCustomPartitioned(new FieldList(partitionKeys), partitioner);
-		}
-		else if(partitionKeys != null) {
-			this.gprops.setAnyPartitioning(new FieldList(partitionKeys));
-		}
+		if (splitProps != null) {
 
-		// set local properties
-		int[] groupKeys = pactContract.getSplitGroupKeys();
-		Ordering order = pactContract.getSplitOrder();
-		if(groupKeys != null) {
-			this.lprops = LocalProperties.forGrouping(new FieldList(groupKeys));
-		} else if(order != null) {
-			this.lprops = LocalProperties.forOrdering(order);
+			if(!splitProps.onlyOneSplitPerTask())
+			{
+				// common case. More than one split per data source task
+
+				// set global properties
+				int[] partitionKeys = splitProps.getSplitPartitionKeys();
+				Partitioner<?> partitioner = splitProps.getSplitPartitioner();
+
+				if(partitionKeys != null && partitioner != null) {
+					this.gprops.setCustomPartitioned(new FieldList(partitionKeys), partitioner);
+				}
+				else if(partitionKeys != null) {
+					this.gprops.setAnyPartitioning(new FieldList(partitionKeys));
+				}
+				// set local properties
+				int[] groupingKeys = splitProps.getSplitGroupKeys();
+				Ordering ordering = splitProps.getSplitOrder();
+
+				if(ordering != null && partitionKeys != null) {
+
+					// get valid subset of order keys
+					FieldList preservedGrouping = new FieldList();
+					for(int i : ordering.getFieldPositions()) {
+						boolean inPartitionKeys = false;
+						for(int j : partitionKeys) {
+							if(i == j) {
+								inPartitionKeys = true;
+								break;
+							}
+						}
+						if(inPartitionKeys) {
+							preservedGrouping = preservedGrouping.addField(i);
+						} else {
+							break;
+						}
+					}
+					if(preservedGrouping.size() > 0) {
+						this.lprops = LocalProperties.forGrouping(preservedGrouping);
+					} else {
+						this.lprops = new LocalProperties();
+					}
+				}
+				else if(groupingKeys != null) {
+					// check if grouping matches with global partitioning
+
+					// check if grouping keys are valid superset of partition keys
+					boolean allFieldsIncluded = true;
+					for(int i : partitionKeys) {
+						boolean fieldIncluded = false;
+						for(int j : groupingKeys) {
+							if(i == j) {
+								fieldIncluded = true;
+								break;
+							}
+						}
+						if(!fieldIncluded) {
+							allFieldsIncluded = false;
+							break;
+						}
+					}
+					if (allFieldsIncluded) {
+						this.lprops = LocalProperties.forGrouping(new FieldList(groupingKeys));
+					} else {
+						this.lprops = new LocalProperties();
+					}
+
+				} else {
+					this.lprops = new LocalProperties();
+				}
+			}
+			else {
+				// special case. At most one split per data source task.
+				// we can take properties as they are
+
+				// set global properties
+				int[] partitionKeys = splitProps.getSplitPartitionKeys();
+				Partitioner<?> partitioner = splitProps.getSplitPartitioner();
+
+				if(partitionKeys != null && partitioner != null) {
+					this.gprops.setCustomPartitioned(new FieldList(partitionKeys), partitioner);
+				}
+				else if(partitionKeys != null) {
+					this.gprops.setAnyPartitioning(new FieldList(partitionKeys));
+				}
+				// set local properties
+				int[] groupingKeys = splitProps.getSplitGroupKeys();
+				Ordering ordering = splitProps.getSplitOrder();
+
+				if(ordering != null) {
+					lprops = LocalProperties.forOrdering(ordering);
+				} else if (groupingKeys != null) {
+					lprops = LocalProperties.forGrouping(new FieldList(groupingKeys));
+				} else {
+					this.lprops = new LocalProperties();
+				}
+			}
 		} else {
 			this.lprops = new LocalProperties();
 		}
+
 	}
 
 	/**
@@ -204,14 +288,15 @@ public class DataSourceNode extends OptimizerNode {
 		if (this.cachedPlans != null) {
 			return this.cachedPlans;
 		}
-		
-		SourcePlanNode candidate = new SourcePlanNode(this, "DataSource ("+this.getPactContract().getName()+")");
+
+		SourcePlanNode candidate = new SourcePlanNode(this, "DataSource ("+this.getPactContract().getName()+")",
+				this.gprops, this.lprops);
+
 		candidate.updatePropertiesWithUniqueSets(getUniqueFields());
-		
+
 		final Costs costs = new Costs();
 		if (FileInputFormat.class.isAssignableFrom(getPactContract().getFormatWrapper().getUserCodeClass()) &&
-				this.estimatedOutputSize >= 0)
-		{
+				this.estimatedOutputSize >= 0) {
 			estimator.addFileInputCost(this.estimatedOutputSize, costs);
 		}
 		candidate.setCosts(costs);

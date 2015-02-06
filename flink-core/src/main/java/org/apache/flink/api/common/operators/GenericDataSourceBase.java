@@ -45,13 +45,7 @@ public class GenericDataSourceBase<OUT, T extends InputFormat<OUT, ?>> extends O
 
 	protected String statisticsKey;
 
-	private int[] splitPartitionKeys;
-
-	private Partitioner<OUT> splitPartitioner;
-
-	private int[] splitGroupKeys;
-
-	private Ordering splitOrder;
+	private SplitDataProperties splitProperties;
 
 	/**
 	 * Creates a new instance for the given file using the given input format.
@@ -166,34 +160,27 @@ public class GenericDataSourceBase<OUT, T extends InputFormat<OUT, ?>> extends O
 		this.statisticsKey = statisticsKey;
 	}
 
-	public void setSplitProperties(int[] splitPartitionKeys, Partitioner<OUT> splitPartitioner,
-									int[] splitGroupKeys,Ordering splitOrder) {
-
-		if(splitGroupKeys != null && splitOrder != null) {
-			throw new IllegalArgumentException("Either split grouping or order keys may be defined");
-		}
-
-		this.splitPartitionKeys = splitPartitionKeys;
-		this.splitPartitioner = splitPartitioner;
-		this.splitGroupKeys = splitGroupKeys;
-		this.splitOrder = splitOrder;
-
+	/**
+	 * Sets properties of input splits for this data source.
+	 * Split properties can help to generate more efficient execution plans.
+	 * <br>
+	 * <b>
+	 *     IMPORTANT: Providing wrong split data properties can cause wrong results!
+	 * </b>
+	 *
+	 * @param splitDataProperties The data properties of this data source's splits.
+	 */
+	public void setSplitDataProperties(SplitDataProperties<OUT> splitDataProperties) {
+		this.splitProperties = splitDataProperties;
 	}
 
-	public int[] getSplitPartitionKeys() {
-		return this.splitPartitionKeys;
-	}
-
-	public Partitioner<OUT> getSplitPartitioner() {
-		return splitPartitioner;
-	}
-
-	public int[] getSplitGroupKeys() {
-		return this.splitGroupKeys;
-	}
-
-	public Ordering getSplitOrder() {
-		return this.splitOrder;
+	/**
+	 * Returns the data properties of this data source's splits.
+	 *
+	 * @return The data properties of this data source's splits or null if no properties have been set.
+	 */
+	public SplitDataProperties<OUT> getSplitDataProperties() {
+		return this.splitProperties;
 	}
 
 	// --------------------------------------------------------------------------------------------
@@ -246,5 +233,20 @@ public class GenericDataSourceBase<OUT, T extends InputFormat<OUT, ?>> extends O
 	
 	public String toString() {
 		return this.name;
+	}
+
+
+	public static interface SplitDataProperties<T> {
+
+		public int[] getSplitPartitionKeys();
+
+		public Partitioner<T> getSplitPartitioner();
+
+		public int[] getSplitGroupKeys();
+
+		public Ordering getSplitOrder();
+
+		public boolean onlyOneSplitPerTask();
+
 	}
 }
