@@ -98,7 +98,7 @@ class DataSet[T: ClassTag](set: JavaDataSet[T]) {
   /**
    * Returns the underlying Java DataSet.
    */
-  private[flink] def javaSet: JavaDataSet[T] = set
+  def javaSet: JavaDataSet[T] = set
 
   /* This code is originally from the Apache Spark project. */
   /**
