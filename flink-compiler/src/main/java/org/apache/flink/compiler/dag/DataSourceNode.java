@@ -93,7 +93,8 @@ public class DataSourceNode extends OptimizerNode {
 					this.gprops.setCustomPartitioned(new FieldList(partitionKeys), partitioner);
 				}
 				else if(partitionKeys != null) {
-					this.gprops.setAnyPartitioning(new FieldList(partitionKeys));
+					//this.gprops.setAnyPartitioning(new FieldList(partitionKeys));
+					this.gprops.setHashPartitioned(new FieldList(partitionKeys));
 				}
 				// set local properties
 				int[] groupingKeys = splitProps.getSplitGroupKeys();
@@ -164,6 +165,7 @@ public class DataSourceNode extends OptimizerNode {
 				}
 				else if(partitionKeys != null) {
 					this.gprops.setAnyPartitioning(new FieldList(partitionKeys));
+					this.gprops.setHashPartitioned(new FieldList(partitionKeys));
 				}
 				// set local properties
 				int[] groupingKeys = splitProps.getSplitGroupKeys();
