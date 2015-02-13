@@ -41,9 +41,18 @@ import org.apache.flink.runtime.operators.shipping.ShipStrategyType;
 import org.apache.flink.statistics.OperatorStatisticsConfig;
 import org.apache.flink.types.Value;
 import org.apache.flink.util.InstantiationUtil;
+import java.io.IOException;
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
+import java.io.ByteArrayInputStream;
+import java.io.DataInputStream;
+import java.util.Collection;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.Collections;
 
-import java.io.*;
-import java.util.*;
 
 /**
  * Configuration class which stores all relevant parameters required to set up the Pact tasks.

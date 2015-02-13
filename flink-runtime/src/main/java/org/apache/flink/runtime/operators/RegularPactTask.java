@@ -49,10 +49,19 @@ import org.apache.flink.runtime.messages.JobManagerMessages;
 import org.apache.flink.runtime.operators.chaining.ChainedDriver;
 import org.apache.flink.runtime.operators.chaining.ExceptionInChainedStubException;
 import org.apache.flink.runtime.operators.resettable.SpillingResettableMutableObjectIterator;
-import org.apache.flink.runtime.operators.shipping.*;
+import org.apache.flink.runtime.operators.shipping.StatisticsCollectorWrapper;
+import org.apache.flink.runtime.operators.shipping.ShipStrategyType;
+import org.apache.flink.runtime.operators.shipping.RecordOutputEmitter;
+import org.apache.flink.runtime.operators.shipping.RecordOutputCollector;
+import org.apache.flink.runtime.operators.shipping.OutputEmitter;
+import org.apache.flink.runtime.operators.shipping.OutputCollector;
 import org.apache.flink.runtime.operators.sort.CombiningUnilateralSortMerger;
 import org.apache.flink.runtime.operators.sort.UnilateralSortMerger;
-import org.apache.flink.runtime.operators.util.*;
+import org.apache.flink.runtime.operators.util.DistributedRuntimeUDFContext;
+import org.apache.flink.runtime.operators.util.CloseableInputProvider;
+import org.apache.flink.runtime.operators.util.TaskConfig;
+import org.apache.flink.runtime.operators.util.LocalStrategy;
+import org.apache.flink.runtime.operators.util.ReaderIterator;
 import org.apache.flink.runtime.plugable.DeserializationDelegate;
 import org.apache.flink.runtime.plugable.SerializationDelegate;
 import org.apache.flink.statistics.OperatorStatisticsConfig;
@@ -1272,6 +1281,7 @@ public class RegularPactTask<S extends Function, OT> extends AbstractInvokable i
 		// get the factory for the serializer
 		final TypeSerializerFactory<T> serializerFactory = config.getOutputSerializer(cl);
 
+        Collector<T> result;
 		// special case the Record
 		if (serializerFactory.getDataType().equals(Record.class)) {
 			final List<RecordWriter<Record>> writers = new ArrayList<RecordWriter<Record>>(numOutputs);
@@ -1303,11 +1313,7 @@ public class RegularPactTask<S extends Function, OT> extends AbstractInvokable i
 			}
 
 			@SuppressWarnings("unchecked")
-			Collector<T> outColl = (Collector<T>) new RecordOutputCollector(writers);
-			if (opStatsConfig != null) {
-				outColl = new StatisticsCollectorWrapper<T>(outColl, opStatsConfig);
-			}
-			return outColl;
+			result = (Collector<T>) new RecordOutputCollector(writers);
 		}
 		else {
 			// generic case
@@ -1337,12 +1343,12 @@ public class RegularPactTask<S extends Function, OT> extends AbstractInvokable i
 			if (eventualOutputs != null) {
 				eventualOutputs.addAll(writers);
 			}
-			Collector<T> result = new OutputCollector<T>(writers, serializerFactory.getSerializer());
-			if (opStatsConfig != null) {
-				result = new StatisticsCollectorWrapper(result, opStatsConfig);
-			}
-			return result;
+			result = new OutputCollector<T>(writers, serializerFactory.getSerializer());
 		}
+        if (opStatsConfig != null) {
+            result = new StatisticsCollectorWrapper(result, opStatsConfig);
+        }
+        return result;
 	}
 
 	/**

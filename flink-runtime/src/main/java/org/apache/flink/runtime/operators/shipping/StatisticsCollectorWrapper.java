@@ -28,28 +28,28 @@ import org.apache.flink.util.Collector;
  */
 public class StatisticsCollectorWrapper<T> implements Collector<T> {
 
-    private Collector<T> collector;
+	private Collector<T> collector;
 
-    private String fieldName;
-    private Class<T> recordType;
+	private String fieldName;
+	private Class<T> recordType;
 
-    private final OperatorStatistics stats;
+	private final OperatorStatistics stats;
 
-    public StatisticsCollectorWrapper(Collector<T> collector, OperatorStatisticsConfig config) {
-        this.collector = collector;
-        this.stats = new OperatorStatistics(config);
-    }
+	public StatisticsCollectorWrapper(Collector<T> collector, OperatorStatisticsConfig config) {
+		this.collector = collector;
+		this.stats = new OperatorStatistics(config);
+	}
 
-    @Override
-    public void collect(T record) {
-        collector.collect(record);
-        stats.process(record);
-    }
+	@Override
+	public void collect(T record) {
+		collector.collect(record);
+		stats.process(record);
+	}
 
-    @Override
-    public void close() {
-        collector.close();
-    }
+	@Override
+	public void close() {
+		collector.close();
+	}
 
 
 }

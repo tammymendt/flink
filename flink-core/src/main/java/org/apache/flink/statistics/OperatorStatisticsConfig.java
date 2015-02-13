@@ -19,23 +19,29 @@
 package org.apache.flink.statistics;
 
 /**
- * Configures the behavior of an {@link org.apache.flink.statistics.OperatorStatistics} instance. The fields of the record that shall be used to gather statistics can be defined here.
+ * Configures the behavior of an {@link org.apache.flink.statistics.OperatorStatistics} instance.
+ * The fields of the record that shall be used to gather statistics can be defined here.
  */
 public class OperatorStatisticsConfig {
 
-    private final Class<?> recordType;
-    private final String[] fieldNames;
+	private final Class<?> recordType;
+	private final String[] fieldNames;
+	private final int LCBitMapSize = 10000000;
 
-    public OperatorStatisticsConfig(Class<?> recordType, String[] fieldNames) {
-        this.recordType = recordType;
-        this.fieldNames = fieldNames;
-    }
+	public OperatorStatisticsConfig(Class<?> recordType, String[] fieldNames) {
+		this.recordType = recordType;
+		this.fieldNames = fieldNames;
+	}
 
-    public Class<?> getRecordType() {
-        return recordType;
-    }
+	public Class<?> getRecordType() {
+		return recordType;
+	}
 
-    public String[] getFieldNames() {
-        return fieldNames;
-    }
+	public String[] getFieldNames() {
+		return fieldNames;
+	}
+
+	public int getLCBitMapSize(){
+		return LCBitMapSize;
+	}
 }
