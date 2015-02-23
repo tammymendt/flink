@@ -64,7 +64,8 @@ import org.apache.flink.runtime.operators.util.LocalStrategy;
 import org.apache.flink.runtime.operators.util.ReaderIterator;
 import org.apache.flink.runtime.plugable.DeserializationDelegate;
 import org.apache.flink.runtime.plugable.SerializationDelegate;
-import org.apache.flink.statistics.OperatorStatisticsConfig;
+import org.apache.flink.statistics.FieldStatisticsConfig;
+import org.apache.flink.statistics.OperatorStatistics;
 import org.apache.flink.types.Record;
 import org.apache.flink.util.Collector;
 import org.apache.flink.util.InstantiationUtil;
@@ -1270,18 +1271,18 @@ public class RegularPactTask<S extends Function, OT> extends AbstractInvokable i
 			return null;
 		}
 
-		// TODO: how about multiple operator stats?
-		OperatorStatisticsConfig opStatsConfig = null;
+		//TODO What does "i" mean here? What is it identifying?
+		FieldStatisticsConfig[] fieldStatsConfig = null;
 		for (int i = 0; i < config.getStatisticsCount(); i++) {
 			if (config.getStatisticsType(i).equals("operator")) {
-				opStatsConfig = config.getOperatorStatisticsConfig(i);
+				fieldStatsConfig = config.getFieldStatisticsConfig(i);
 			}
 		}
 
 		// get the factory for the serializer
 		final TypeSerializerFactory<T> serializerFactory = config.getOutputSerializer(cl);
 
-        Collector<T> result;
+		Collector<T> result;
 		// special case the Record
 		if (serializerFactory.getDataType().equals(Record.class)) {
 			final List<RecordWriter<Record>> writers = new ArrayList<RecordWriter<Record>>(numOutputs);
@@ -1312,7 +1313,6 @@ public class RegularPactTask<S extends Function, OT> extends AbstractInvokable i
 				eventualOutputs.addAll(writers);
 			}
 
-			@SuppressWarnings("unchecked")
 			result = (Collector<T>) new RecordOutputCollector(writers);
 		}
 		else {
@@ -1345,10 +1345,12 @@ public class RegularPactTask<S extends Function, OT> extends AbstractInvokable i
 			}
 			result = new OutputCollector<T>(writers, serializerFactory.getSerializer());
 		}
-        if (opStatsConfig != null) {
-            result = new StatisticsCollectorWrapper(result, opStatsConfig);
-        }
-        return result;
+		if (fieldStatsConfig != null) {
+
+			OperatorStatistics operatorStatistics = new OperatorStatistics(config.getTaskName(),fieldStatsConfig);
+			result = new StatisticsCollectorWrapper(result, operatorStatistics);
+		}
+		return result;
 	}
 
 	/**

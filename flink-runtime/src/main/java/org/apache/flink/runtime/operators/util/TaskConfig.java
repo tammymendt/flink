@@ -38,7 +38,7 @@ import org.apache.flink.runtime.operators.DriverStrategy;
 import org.apache.flink.runtime.operators.PactDriver;
 import org.apache.flink.runtime.operators.chaining.ChainedDriver;
 import org.apache.flink.runtime.operators.shipping.ShipStrategyType;
-import org.apache.flink.statistics.OperatorStatisticsConfig;
+import org.apache.flink.statistics.FieldStatisticsConfig;
 import org.apache.flink.types.Value;
 import org.apache.flink.util.InstantiationUtil;
 import java.io.IOException;
@@ -229,9 +229,9 @@ public class TaskConfig {
 
 	private static final String STATISTICS_NUM = "stats.num";
 
-	private static final String STATISTICAS_TYPE_PREFIX = "stats.type.";
+	private static final String STATISTICS_TYPE_PREFIX = "stats.type.";
 
-	private static final String STATISTICAS_CONFIG_PREFIX = "stats.config.";
+	private static final String STATISTICS_CONFIG_PREFIX = "stats.config.";
 
 	// --------------------------------------------------------------------------------------------
 	//                         Members, Constructors, and Accessors
@@ -1161,14 +1161,33 @@ public class TaskConfig {
 	// --------------------------------------------------------------------------------------------
 
 	public void addOperatorStatistics(Class<?> recordType, String[] fields) {
-		int statisId = config.getInteger(STATISTICS_NUM, 0);
-		config.setString(STATISTICAS_TYPE_PREFIX + statisId, "operator");
+		int statsId = config.getInteger(STATISTICS_NUM, 0);
+		config.setString(STATISTICS_TYPE_PREFIX + statsId, "operator");
 		String configString = recordType.getCanonicalName();
 		for (String field : fields) {
 			configString += "," + field;
 		}
-		config.setString(STATISTICAS_CONFIG_PREFIX + statisId, configString);
-		config.setInteger(STATISTICS_NUM, statisId + 1);
+		config.setString(STATISTICS_CONFIG_PREFIX + statsId, configString);
+		config.setInteger(STATISTICS_NUM, statsId + 1);
+	}
+
+	public FieldStatisticsConfig[] getFieldStatisticsConfig(int i) {
+		String configString = config.getString(STATISTICS_CONFIG_PREFIX + i, null);
+		FieldStatisticsConfig[] fieldStatisticsConfigs = null;
+		if (configString != null) {
+			String[] configStringParts = configString.split(",");
+			Class<?> recordType = null;
+			try {
+				recordType = Class.forName(configStringParts[0]);
+			} catch (ClassNotFoundException e) {
+			}
+
+			fieldStatisticsConfigs = new FieldStatisticsConfig[configString.length()-1];
+			for (int j = 1; j < configStringParts.length; j++) {
+				fieldStatisticsConfigs[j-1] = new FieldStatisticsConfig(configStringParts[j]);
+			}
+		}
+		return fieldStatisticsConfigs;
 	}
 
 	public int getStatisticsCount() {
@@ -1176,33 +1195,10 @@ public class TaskConfig {
 	}
 
 	public String getStatisticsType(int i) {
-		return config.getString(STATISTICAS_TYPE_PREFIX + i, null);
+		return config.getString(STATISTICS_TYPE_PREFIX + i, null);
 	}
 
-	public OperatorStatisticsConfig getOperatorStatisticsConfig(int i) {
-		OperatorStatisticsConfig result = null;
-		String configString = config.getString(STATISTICAS_CONFIG_PREFIX + i, null);
-		if (configString != null) {
-			String[] configStringParts = configString.split(",");
-			Class<?> recordType = null;
-			List<String> fields = new ArrayList<String>();
-			for (int j = 0; j < configStringParts.length; j++) {
-				if (j == 0) {
-					try {
-						recordType = Class.forName(configStringParts[i]);
-					} catch (ClassNotFoundException e) {
-					}
-				} else {
-					fields.add(configStringParts[i]);
-				}
-			}
-			if (recordType != null && !fields.isEmpty()) {
-				result = new OperatorStatisticsConfig(recordType, fields.toArray(new String[fields.size()]));
-			}
-		}
-		return result;
-	}
-	
+
 	// --------------------------------------------------------------------------------------------
 	//                          Utility class for nested Configurations
 	// --------------------------------------------------------------------------------------------

@@ -19,7 +19,6 @@
 package org.apache.flink.runtime.operators.shipping;
 
 import org.apache.flink.statistics.OperatorStatistics;
-import org.apache.flink.statistics.OperatorStatisticsConfig;
 import org.apache.flink.util.Collector;
 
 /**
@@ -29,15 +28,11 @@ import org.apache.flink.util.Collector;
 public class StatisticsCollectorWrapper<T> implements Collector<T> {
 
 	private Collector<T> collector;
-
-	private String fieldName;
-	private Class<T> recordType;
-
 	private final OperatorStatistics stats;
 
-	public StatisticsCollectorWrapper(Collector<T> collector, OperatorStatisticsConfig config) {
+	public StatisticsCollectorWrapper(Collector<T> collector, OperatorStatistics operatorStatistics) {
 		this.collector = collector;
-		this.stats = new OperatorStatistics(config);
+		this.stats = operatorStatistics;
 	}
 
 	@Override

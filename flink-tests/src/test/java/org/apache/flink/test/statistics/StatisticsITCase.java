@@ -140,8 +140,6 @@ public class StatisticsITCase extends RecordAPITestBase {
 	// -------------------------------------------------------------------------------------------------------------
 
 	private JobGraph createJobGraphV1(String pointsPath, String centersPath, String resultPath, int numSubTasks) {
-
-		
 		
 		// -- init -------------------------------------------------------------------------------------------------
 		final TypeSerializerFactory<?> serializer = RecordSerializerFactory.get();
