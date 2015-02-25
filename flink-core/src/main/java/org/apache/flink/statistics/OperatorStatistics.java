@@ -38,6 +38,9 @@ public class OperatorStatistics {
 		this.numberOfStats = statsConfig.length;
 		this.statsConfig = statsConfig.clone();
 		stats = new FieldStatistics[numberOfStats];
+		for (int i=0;i<stats.length;i++){
+			stats[i] = new FieldStatistics(statsConfig[i]);
+		}
 		totalCardinality = 0L;
 	}
 
@@ -66,7 +69,7 @@ public class OperatorStatistics {
 
 	private Object getFieldValue(Object record, Class<?> recordType, String fieldName) {
 		try {
-			return recordType.getField(fieldName).get(record);
+			return recordType.getDeclaredField(fieldName).get(record);
 		} catch (NoSuchFieldException e) {
 			throw new RuntimeException(String.format("Could not process record for statistics because record has no field '%s'", fieldName), e);
 		} catch (IllegalAccessException e) {
