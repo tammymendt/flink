@@ -29,6 +29,7 @@ import java.util.Set;
 import akka.actor.ActorRef;
 import org.apache.flink.runtime.jobgraph.JobID;
 import org.apache.flink.runtime.jobmanager.scheduler.SlotAvailabilityListener;
+import org.apache.flink.statistics.OperatorStatistics;
 
 /**
  * An taskManager represents a resource a {@link org.apache.flink.runtime.taskmanager.TaskManager} runs on.
@@ -69,7 +70,9 @@ public class Instance implements Serializable {
 	 * Time when last heat beat has been received from the task manager running on this taskManager.
 	 */
 	private volatile long lastReceivedHeartBeat = System.currentTimeMillis();
-	
+
+    private OperatorStatistics lastOperatorStats;
+
 	private volatile boolean isDead;
 
 	// --------------------------------------------------------------------------------------------
@@ -160,6 +163,14 @@ public class Instance implements Serializable {
 	public void reportHeartBeat() {
 		this.lastReceivedHeartBeat = System.currentTimeMillis();
 	}
+
+    public OperatorStatistics getLastOperatorStats() {
+        return this.lastOperatorStats;
+    }
+
+    public void setLastOperatorStats(OperatorStatistics operatorStats){
+        this.lastOperatorStats = operatorStats;
+    }
 
 	/**
 	 * Checks whether the last heartbeat occurred within the last {@code n} milliseconds

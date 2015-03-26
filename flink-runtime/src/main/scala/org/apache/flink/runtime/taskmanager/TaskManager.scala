@@ -52,6 +52,7 @@ import org.apache.flink.runtime.messages.TaskManagerProfilerMessages.{MonitorTas
 import org.apache.flink.runtime.net.NetUtils
 import org.apache.flink.runtime.profiling.ProfilingUtils
 import org.apache.flink.runtime.util.EnvironmentInformation
+import org.apache.flink.statistics.OperatorStatistics
 import org.apache.flink.util.ExceptionUtils
 import org.slf4j.LoggerFactory
 
@@ -248,7 +249,8 @@ import scala.collection.JavaConverters._
     }
 
     case SendHeartbeat => {
-      currentJobManager ! Heartbeat(instanceID)
+      val stats: OperatorStatistics = null
+      currentJobManager ! Heartbeat(instanceID,stats)
     }
 
     case LogMemoryUsage => {

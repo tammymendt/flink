@@ -43,6 +43,7 @@ import org.apache.flink.runtime.messages.JobManagerMessages._
 import org.apache.flink.runtime.messages.RegistrationMessages._
 import org.apache.flink.runtime.messages.TaskManagerMessages.{NextInputSplit, Heartbeat}
 import org.apache.flink.runtime.profiling.ProfilingUtils
+import org.apache.flink.statistics.OperatorStatistics
 import org.slf4j.LoggerFactory
 
 import scala.concurrent.{Future}
@@ -417,8 +418,8 @@ Actor with ActorLogMessages with ActorLogging {
       sender ! RegisteredTaskManagers(instanceManager.getAllRegisteredInstances.asScala)
     }
 
-    case Heartbeat(instanceID) => {
-      instanceManager.reportHeartBeat(instanceID)
+    case Heartbeat(instanceID, operatorStats) => {
+      instanceManager.reportHeartBeat(instanceID, operatorStats)
     }
 
     case Terminated(taskManager) => {

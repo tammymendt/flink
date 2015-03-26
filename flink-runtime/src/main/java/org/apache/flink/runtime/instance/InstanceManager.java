@@ -29,6 +29,7 @@ import java.util.Set;
 import akka.actor.ActorRef;
 import org.apache.flink.configuration.ConfigConstants;
 import org.apache.flink.configuration.GlobalConfiguration;
+import org.apache.flink.statistics.OperatorStatistics;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -118,7 +119,7 @@ public class InstanceManager {
 		}
 	}
 
-	public boolean reportHeartBeat(InstanceID instanceId) {
+	public boolean reportHeartBeat(InstanceID instanceId, OperatorStatistics operatorStats) {
 		if (instanceId == null) {
 			throw new IllegalArgumentException("InstanceID may not be null.");
 		}
@@ -140,6 +141,7 @@ public class InstanceManager {
 			}
 
 			host.reportHeartBeat();
+            host.setLastOperatorStats(operatorStats);
 			return true;
 		}
 	}

@@ -23,6 +23,7 @@ import org.apache.flink.runtime.deployment.{PartitionInfo, TaskDeploymentDescrip
 import org.apache.flink.runtime.executiongraph.ExecutionAttemptID
 import org.apache.flink.runtime.instance.InstanceID
 import org.apache.flink.runtime.jobgraph.IntermediateDataSetID
+import org.apache.flink.statistics.OperatorStatistics
 
 object TaskManagerMessages {
 
@@ -92,7 +93,7 @@ object TaskManagerMessages {
    *
    * @param instanceID
    */
-  case class Heartbeat(instanceID: InstanceID)
+  case class Heartbeat(instanceID: InstanceID, operatorStatistics: OperatorStatistics)
 
   /**
    * Requests a notification from the task manager as soon as the task manager has been
