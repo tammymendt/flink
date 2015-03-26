@@ -42,6 +42,8 @@ public abstract class Operator<OUT> implements Visitable<Operator<?>> {
 		
 	private int degreeOfParallelism = -1;				// the number of parallel instances to use. -1, if unknown
 
+    private String[] keyStatistics;
+
 	/**
 	 * The return type of the user function.
 	 */
@@ -280,4 +282,8 @@ public abstract class Operator<OUT> implements Visitable<Operator<?>> {
 	public String toString() {
 		return getClass().getSimpleName() + " - " + getName();
 	}
+
+    public void setKeyStatistics(String[] keyStatistics) {
+        this.keyStatistics = keyStatistics;
+    }
 }

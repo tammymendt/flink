@@ -78,7 +78,8 @@ public class OperatorTranslation {
 		}
 		
 		Operator<T> dataFlowOp;
-		
+        String[] keyStatistics = dataSet.getKeyStatistics();
+
 		if (dataSet instanceof DataSource) {
 			dataFlowOp = ((DataSource<T>) dataSet).translateToDataFlow();
 		}
@@ -101,7 +102,9 @@ public class OperatorTranslation {
 		else {
 			throw new RuntimeException("Error while creating the data flow plan for the program: Unknown operator or data set type: " + dataSet);
 		}
-		
+
+        dataFlowOp.setKeyStatistics(keyStatistics);
+
 		this.translated.put(dataSet, dataFlowOp);
 		
 		// take care of broadcast variables

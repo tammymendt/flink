@@ -98,13 +98,15 @@ public abstract class DataSet<T> {
 	private TypeInformation<T> type;
 	
 	private boolean typeUsed = false;
-	
-	
-	protected DataSet(ExecutionEnvironment context, TypeInformation<T> typeInfo) {
+
+    private String[] keyStatistics;
+
+    protected DataSet(ExecutionEnvironment context, TypeInformation<T> typeInfo) {
 		if (context == null) {
 			throw new NullPointerException("context is null");
 		}
 		if (typeInfo == null) {
+
 			throw new NullPointerException("typeInfo is null");
 		}
 
@@ -1318,5 +1320,14 @@ public abstract class DataSet<T> {
 			throw new IllegalArgumentException("The two inputs have different execution contexts.");
 		}
 	}
+
+    public String[] getKeyStatistics() {
+        return keyStatistics;
+    }
+
+    public DataSet<T> collectKeyStatistics(String[] keyStatistics) {
+        this.keyStatistics = keyStatistics;
+        return this;
+    }
 
 }
