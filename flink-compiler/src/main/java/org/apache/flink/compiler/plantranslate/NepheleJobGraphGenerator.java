@@ -803,8 +803,9 @@ public class NepheleJobGraphGenerator implements Visitor<PlanNode> {
 		// set user code
 		config.setStubWrapper(node.getPactContract().getUserCodeWrapper());
 		config.setStubParameters(node.getPactContract().getParameters());
-		
-		// set the driver strategy
+        config.setKeyStatistics(node.getKeyStatistics());
+
+        // set the driver strategy
 		config.setDriverStrategy(ds);
 		for(int i=0;i<ds.getNumRequiredComparators();i++) {
 			config.setDriverComparator(node.getComparator(i), i);
@@ -824,8 +825,9 @@ public class NepheleJobGraphGenerator implements Visitor<PlanNode> {
 		// set user code
 		config.setStubWrapper(node.getPactContract().getUserCodeWrapper());
 		config.setStubParameters(node.getPactContract().getParameters());
-		
-		// set the driver strategy
+        config.setKeyStatistics(node.getKeyStatistics());
+
+        // set the driver strategy
 		config.setDriver(ds.getDriverClass());
 		config.setDriverStrategy(ds);
 		if (node.getComparator1() != null) {
@@ -837,8 +839,10 @@ public class NepheleJobGraphGenerator implements Visitor<PlanNode> {
 		if (node.getPairComparator() != null) {
 			config.setDriverPairComparator(node.getPairComparator());
 		}
-		
-		// assign memory, file-handles, etc.
+
+        config.setKeyStatistics(node.getKeyStatistics());
+
+        // assign memory, file-handles, etc.
 		assignDriverResources(node, config);
 		return vertex;
 	}
@@ -854,7 +858,7 @@ public class NepheleJobGraphGenerator implements Visitor<PlanNode> {
 		config.setStubWrapper(node.getPactContract().getUserCodeWrapper());
 		config.setStubParameters(node.getPactContract().getParameters());
 
-		config.setOutputSerializer(node.getSerializer());
+        config.setOutputSerializer(node.getSerializer());
 		return vertex;
 	}
 
@@ -867,8 +871,7 @@ public class NepheleJobGraphGenerator implements Visitor<PlanNode> {
 		
 		// set user code
 		config.setStubWrapper(node.getPactContract().getUserCodeWrapper());
-		config.setStubParameters(node.getPactContract().getParameters());
-        config.setKeyStatistics(node.getKeyStatistics());
+        config.setStubParameters(node.getPactContract().getParameters());
 
 		return vertex;
 	}

@@ -111,7 +111,7 @@ public class StatisticsITCase extends RecordAPITestBase {
 			taskConfig.setInputLocalStrategy(0, LocalStrategy.NONE);
 			taskConfig.setInputSerializer(serializer, 0);
 
-			taskConfig.addOperatorStatistics(Record.class, new String[]{"f0", "f1"});
+			taskConfig.setKeyStatistics(Record.class, new String[]{"f0", "f1"});
 		}
 
 		return pointsInput;
