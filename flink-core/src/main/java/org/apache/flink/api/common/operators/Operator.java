@@ -286,4 +286,8 @@ public abstract class Operator<OUT> implements Visitable<Operator<?>> {
     public void setKeyStatistics(String[] keyStatistics) {
         this.keyStatistics = keyStatistics;
     }
+
+    public String[] getKeyStatistics(){
+        return this.keyStatistics;
+    }
 }

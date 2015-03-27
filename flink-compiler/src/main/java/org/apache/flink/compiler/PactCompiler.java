@@ -764,6 +764,7 @@ public class PactCompiler {
 				throw new IllegalArgumentException("Unknown operator type: " + c);
 			}
 
+            c.getKeyStatistics();
 			this.con2node.put(c, n);
 			
 			// set the parallelism only if it has not been set before. some nodes have a fixed DOP, such as the

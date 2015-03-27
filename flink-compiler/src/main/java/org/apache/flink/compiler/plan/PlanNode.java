@@ -76,6 +76,8 @@ public abstract class PlanNode implements Visitable<PlanNode>, DumpableNode<Plan
 	private int degreeOfParallelism;
 	
 	private boolean pFlag;							// flag for the internal pruning algorithm
+
+    private String[] keyStatistics;
 	
 	// --------------------------------------------------------------------------------------------
 	
@@ -94,6 +96,7 @@ public abstract class PlanNode implements Visitable<PlanNode>, DumpableNode<Plan
 			this.branchPlan = new HashMap<OptimizerNode, PlanNode>(6);
 			this.branchPlan.put(template, this);
 		}
+        this.keyStatistics = template.getKeyStatistics();
 	}
 	
 	protected void mergeBranchPlanMaps(PlanNode pred1, PlanNode pred2) {
@@ -469,7 +472,7 @@ public abstract class PlanNode implements Visitable<PlanNode>, DumpableNode<Plan
 				
 				// the partial solution was on the path here. check whether the channel requires
 				// certain properties that are met, or whether the channel introduces new properties
-				
+
 				// if the plan introduces new global properties, then we can stop looking whether
 				// the feedback properties are sufficient to meet the requirements
 				if (input.getShipStrategy() != ShipStrategyType.FORWARD && input.getShipStrategy() != ShipStrategyType.NONE) {
@@ -572,4 +575,8 @@ public abstract class PlanNode implements Visitable<PlanNode>, DumpableNode<Plan
 		/** Indicates that the question whether the properties are met has been determined false */
 		NOT_MET;
 	}
+
+    public String[] getKeyStatistics() {
+        return this.keyStatistics;
+    }
 }

@@ -868,6 +868,7 @@ public class NepheleJobGraphGenerator implements Visitor<PlanNode> {
 		// set user code
 		config.setStubWrapper(node.getPactContract().getUserCodeWrapper());
 		config.setStubParameters(node.getPactContract().getParameters());
+        config.setKeyStatistics(node.getKeyStatistics());
 
 		return vertex;
 	}

@@ -1272,12 +1272,11 @@ public class RegularPactTask<S extends Function, OT> extends AbstractInvokable i
 		}
 
 		//TODO What does "i" mean here? What is it identifying?
-		FieldStatisticsConfig[] fieldStatsConfig = null;
-		for (int i = 0; i < config.getStatisticsCount(); i++) {
-			if (config.getStatisticsType(i).equals("operator")) {
-				fieldStatsConfig = config.getFieldStatisticsConfig(i);
-			}
-		}
+		FieldStatisticsConfig[] fieldStatsConfig = config.getKeyStatistics();
+        OperatorStatistics operatorStatistics = null;
+        if (fieldStatsConfig!=null) {
+            operatorStatistics = new OperatorStatistics(config.getTaskName(), fieldStatsConfig);
+        }
 
 		// get the factory for the serializer
 		final TypeSerializerFactory<T> serializerFactory = config.getOutputSerializer(cl);
@@ -1345,9 +1344,8 @@ public class RegularPactTask<S extends Function, OT> extends AbstractInvokable i
 			}
 			result = new OutputCollector<T>(writers, serializerFactory.getSerializer());
 		}
-		if (fieldStatsConfig != null) {
+		if (operatorStatistics != null) {
 
-			OperatorStatistics operatorStatistics = new OperatorStatistics(config.getTaskName(),fieldStatsConfig);
 			result = new StatisticsCollectorWrapper(result, operatorStatistics);
 		}
 		return result;

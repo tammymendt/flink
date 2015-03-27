@@ -102,6 +102,8 @@ public abstract class OptimizerNode implements Visitable<OptimizerNode>, Estimat
 	
 	protected int[][] remappedKeys;
 
+    private String[] keyStatistics;
+
 	// ------------------------------------------------------------------------
 	//                      Constructor / Setup
 	// ------------------------------------------------------------------------
@@ -125,6 +127,7 @@ public abstract class OptimizerNode implements Visitable<OptimizerNode>, Estimat
 				this.remappedKeys[i] = rk;
 			}
 		}
+        this.keyStatistics = op.getKeyStatistics();
 	}
 	
 	protected OptimizerNode(OptimizerNode toCopy) {
@@ -147,6 +150,7 @@ public abstract class OptimizerNode implements Visitable<OptimizerNode>, Estimat
 		this.id = toCopy.id;
 		this.costWeight = toCopy.costWeight;
 		this.onDynamicPath = toCopy.onDynamicPath;
+        this.keyStatistics = toCopy.keyStatistics;
 	}
 
 	// ------------------------------------------------------------------------
@@ -1191,4 +1195,8 @@ public abstract class OptimizerNode implements Visitable<OptimizerNode>, Estimat
 	public int[] getRemappedKeys(int input) {
 		return this.remappedKeys[input];
 	}
+
+    public String[] getKeyStatistics() {
+        return keyStatistics;
+    }
 }

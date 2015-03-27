@@ -227,11 +227,9 @@ public class TaskConfig {
 	
 	// ---------------------------  ------- Statistics ----------- --------------------------------
 
-	private static final String STATISTICS_NUM = "stats.num";
+	private static final String KEY_OPERATOR_STATS = "operator.stats.key.";
 
-	private static final String STATISTICS_TYPE_PREFIX = "stats.type.";
-
-	private static final String STATISTICS_CONFIG_PREFIX = "stats.config.";
+	private static final String NUM_OPERATOR_STATS = "num.operator.stats";
 
 	// --------------------------------------------------------------------------------------------
 	//                         Members, Constructors, and Accessors
@@ -1160,44 +1158,27 @@ public class TaskConfig {
 	//                                     Statistics
 	// --------------------------------------------------------------------------------------------
 
-	public void addOperatorStatistics(Class<?> recordType, String[] fields) {
-		int statsId = config.getInteger(STATISTICS_NUM, 0);
-		config.setString(STATISTICS_TYPE_PREFIX + statsId, "operator");
-		String configString = recordType.getCanonicalName();
-		for (String field : fields) {
-			configString += "," + field;
-		}
-		config.setString(STATISTICS_CONFIG_PREFIX + statsId, configString);
-		config.setInteger(STATISTICS_NUM, statsId + 1);
+	public void setKeyStatistics(String[] fields) {
+        if (fields!=null){
+            int statsId = config.getInteger(NUM_OPERATOR_STATS, 0);
+            for (int i=0;i<fields.length;i++) {
+                config.setString(KEY_OPERATOR_STATS + statsId++, fields[i]);
+            }
+            config.setInteger(NUM_OPERATOR_STATS, statsId);
+        }
 	}
 
-	public FieldStatisticsConfig[] getFieldStatisticsConfig(int i) {
-		String configString = config.getString(STATISTICS_CONFIG_PREFIX + i, null);
-		FieldStatisticsConfig[] fieldStatisticsConfigs = null;
-		if (configString != null) {
-			String[] configStringParts = configString.split(",");
-			Class<?> recordType = null;
-			try {
-				recordType = Class.forName(configStringParts[0]);
-			} catch (ClassNotFoundException e) {
-			}
-
-			fieldStatisticsConfigs = new FieldStatisticsConfig[configString.length()-1];
-			for (int j = 1; j < configStringParts.length; j++) {
-				fieldStatisticsConfigs[j-1] = new FieldStatisticsConfig(configStringParts[j]);
-			}
-		}
-		return fieldStatisticsConfigs;
+	public FieldStatisticsConfig[] getKeyStatistics() {
+        int numStats = config.getInteger(NUM_OPERATOR_STATS, 0);
+        if (numStats>0){
+            FieldStatisticsConfig[] fieldStatisticsConfigs = new FieldStatisticsConfig[numStats];
+            for (int i = 0; i < numStats; i++) {
+                fieldStatisticsConfigs[i] = new FieldStatisticsConfig(config.getString(KEY_OPERATOR_STATS + i, ""));
+            }
+            return fieldStatisticsConfigs;
+        }
+        return null;
 	}
-
-	public int getStatisticsCount() {
-		return config.getInteger(STATISTICS_NUM, 0);
-	}
-
-	public String getStatisticsType(int i) {
-		return config.getString(STATISTICS_TYPE_PREFIX + i, null);
-	}
-
 
 	// --------------------------------------------------------------------------------------------
 	//                          Utility class for nested Configurations
