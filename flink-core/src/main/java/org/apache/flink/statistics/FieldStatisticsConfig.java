@@ -31,13 +31,6 @@ public class FieldStatisticsConfig {
 	private final Function keySelector;
 	private final String fieldName;
 
-	public final int countDbitMapSize = 1000000;
-	public final int countDlog2m = 1000000;
-	public final int seed = 7364181;
-	public final double heavyHitterEpsilon = 0.0001;
-	public final double heavyHitterConfidence = 0.99;
-	public final double heavyHitterPhi = 0.2;
-
 	public boolean collectMin;
 	public boolean collectMax;
 	public boolean collectCountDistinct;

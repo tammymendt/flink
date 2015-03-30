@@ -42,10 +42,10 @@ public class FieldStatistics {
 	public FieldStatistics(FieldStatisticsConfig config) {
 		this.config = config;
 		if (config.countDistinctAlgorithm.equals(FieldStatisticsConfig.CountDistinctAlgorithm.LINEAR_COUNTING)) {
-			countDistinct = new LinearCounting(config.countDbitMapSize);
+			countDistinct = new LinearCounting(OperatorStatistics.COUNTD_BITMAP_SIZE);
 		}
 		if(config.countDistinctAlgorithm.equals(FieldStatisticsConfig.CountDistinctAlgorithm.HYPERLOGLOG)){
-			countDistinct = new HyperLogLog(config.countDlog2m);
+			countDistinct = new HyperLogLog(OperatorStatistics.COUNTD_LOG2M);
 		}
 	}
 
