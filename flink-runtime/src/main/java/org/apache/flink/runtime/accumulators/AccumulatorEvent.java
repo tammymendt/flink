@@ -30,6 +30,7 @@ import java.util.Map;
 
 import org.apache.flink.api.common.accumulators.Accumulator;
 import org.apache.flink.runtime.jobgraph.JobID;
+import org.apache.flink.runtime.jobgraph.JobVertexID;
 import org.apache.flink.util.InstantiationUtil;
 
 /**
@@ -42,6 +43,8 @@ public class AccumulatorEvent implements Serializable {
 	private static final long serialVersionUID = 8965894516006882735L;
 
 	private JobID jobID;
+
+    private JobVertexID jobVertexId;
 	
 	private Map<String, Accumulator<?, ?>> accumulators;
 	
@@ -60,9 +63,19 @@ public class AccumulatorEvent implements Serializable {
 		this.jobID = jobID;
 	}
 
+    public AccumulatorEvent(JobID jobID, JobVertexID jobVertexId, Map<String, Accumulator<?, ?>> accumulators) {
+        this.accumulators = accumulators;
+        this.jobID = jobID;
+        this.jobVertexId = jobVertexId;
+    }
+
 	public JobID getJobID() {
 		return this.jobID;
 	}
+
+    public JobVertexID getJobVertexId(){
+        return this.jobVertexId;
+    }
 
 	public Map<String, Accumulator<?, ?>> getAccumulators(ClassLoader loader) {
 		if (loader == null) {

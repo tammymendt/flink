@@ -51,6 +51,17 @@ public class AccumulatorHelper {
 		}
 	}
 
+    public static void mergeInto(Map<String, Map<String,Accumulator<?, ?>>> target, String jobVertexId, Map<String, Accumulator<?, ?>> toMerge) {
+        for (Map.Entry<String, Accumulator<?, ?>> otherEntry : toMerge.entrySet()) {
+            Map<String,Accumulator<?, ?>> ownAccumulator = target.get(otherEntry.getKey());
+            if (ownAccumulator == null) {
+                // Take over counter from chained task
+                target.put(otherEntry.getKey(), new HashMap<String, Accumulator<?, ?>>());
+            }
+            target.get(otherEntry.getKey()).put(jobVertexId,otherEntry.getValue());
+        }
+    }
+
 	/**
 	 * Workaround method for type safety
 	 */

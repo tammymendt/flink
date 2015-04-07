@@ -18,6 +18,8 @@
 
 package org.apache.flink.statistics;
 
+import java.io.Serializable;
+
 /**
  * Gathers statistical information about records that were i.e. emitted via a {@link org.apache.flink.util.Collector}.
  * The following information are gathered: MIN, MAX, COUNT, COUNT DISTINCT
@@ -25,7 +27,7 @@ package org.apache.flink.statistics;
  * Which fields of a record are to be statistically processed is determined by
  * the {@link org.apache.flink.statistics.FieldStatisticsConfig} array
  */
-public class OperatorStatistics {
+public class OperatorStatistics implements Serializable{
 
     public static final int COUNTD_BITMAP_SIZE = 1000000;
     public static final int COUNTD_LOG2M = 1000000;

@@ -191,8 +191,6 @@ public class DataSourceTask<OT> extends AbstractInvokable {
 							if ((returned = format.nextRecord(serializer.createInstance())) != null) {
 								output.collect(returned);
 							}
-                            //every so often, or when something happens
-                            //this.getEnvironment().
 						}
 					}
 

@@ -25,6 +25,7 @@ import java.util.Map;
 
 import org.apache.flink.api.common.accumulators.Accumulator;
 import org.apache.flink.runtime.jobgraph.JobID;
+import org.apache.flink.runtime.jobgraph.JobVertexID;
 
 /**
  * This class manages the accumulators for different jobs. Either the jobs are
@@ -52,7 +53,7 @@ public class AccumulatorManager {
 	 * Merges the new accumulators with the existing accumulators collected for
 	 * the job.
 	 */
-	public void processIncomingAccumulators(JobID jobID,
+	public void processIncomingAccumulators(JobID jobID, JobVertexID jobVertexID,
 			Map<String, Accumulator<?, ?>> newAccumulators) {
 		synchronized (this.jobAccumulators) {
 			
@@ -66,7 +67,7 @@ public class AccumulatorManager {
 				this.jobAccumulators.put(jobID, jobAccumulators);
 				cleanup(jobID);
 			}
-			jobAccumulators.processNew(newAccumulators);
+			jobAccumulators.processNew(jobVertexID, newAccumulators);
 		}
 	}
 
@@ -84,6 +85,20 @@ public class AccumulatorManager {
 
 		return result;
 	}
+
+    public Map<String, Object> getTaskAccumulators(JobID jobID) {
+        Map<String, Object> result = new HashMap<String, Object>();
+
+        JobAccumulators jobAccumulator = jobAccumulators.get(jobID);
+
+        if(jobAccumulator != null) {
+            for (Map.Entry<String, Map<String,Accumulator<?, ?>>> entry : jobAccumulator.getTaskAccumulators().entrySet()) {
+                result.put(entry.getKey(), entry.getValue());
+            }
+        }
+
+        return result;
+    }
 
 	/**
 	 * Cleanup data for the oldest jobs if the maximum number of entries is

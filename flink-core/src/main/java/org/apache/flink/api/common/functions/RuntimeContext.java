@@ -22,11 +22,7 @@ import java.io.Serializable;
 import java.util.HashMap;
 import java.util.List;
 
-import org.apache.flink.api.common.accumulators.Accumulator;
-import org.apache.flink.api.common.accumulators.DoubleCounter;
-import org.apache.flink.api.common.accumulators.Histogram;
-import org.apache.flink.api.common.accumulators.IntCounter;
-import org.apache.flink.api.common.accumulators.LongCounter;
+import org.apache.flink.api.common.accumulators.*;
 import org.apache.flink.api.common.cache.DistributedCache;
 
 /**
@@ -114,6 +110,8 @@ public interface RuntimeContext {
 	 * Convenience function to create a counter object for histograms.
 	 */
 	Histogram getHistogram(String name);
+
+    OperatorStatsAccumulator getOperatorStatsAccumulator(String name);
 	
 	// --------------------------------------------------------------------------------------------
 

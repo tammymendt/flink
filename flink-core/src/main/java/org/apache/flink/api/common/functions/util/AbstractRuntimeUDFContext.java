@@ -23,12 +23,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.FutureTask;
 
-import org.apache.flink.api.common.accumulators.Accumulator;
-import org.apache.flink.api.common.accumulators.AccumulatorHelper;
-import org.apache.flink.api.common.accumulators.DoubleCounter;
-import org.apache.flink.api.common.accumulators.Histogram;
-import org.apache.flink.api.common.accumulators.IntCounter;
-import org.apache.flink.api.common.accumulators.LongCounter;
+import org.apache.flink.api.common.accumulators.*;
 import org.apache.flink.api.common.cache.DistributedCache;
 import org.apache.flink.api.common.functions.RuntimeContext;
 import org.apache.flink.core.fs.Path;
@@ -97,6 +92,11 @@ public abstract class AbstractRuntimeUDFContext implements RuntimeContext {
 	public DoubleCounter getDoubleCounter(String name) {
 		return (DoubleCounter) getAccumulator(name, DoubleCounter.class);
 	}
+
+    @Override
+    public OperatorStatsAccumulator getOperatorStatsAccumulator(String name) {
+        return (OperatorStatsAccumulator) getAccumulator(name, OperatorStatsAccumulator.class);
+    }
 
 	@Override
 	public <V, A extends Serializable> void addAccumulator(String name, Accumulator<V, A> accumulator) {

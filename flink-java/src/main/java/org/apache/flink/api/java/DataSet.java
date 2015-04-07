@@ -1325,7 +1325,7 @@ public abstract class DataSet<T> {
         return keyStatistics;
     }
 
-    public DataSet<T> collectKeyStatistics(String[] keyStatistics) {
+    public DataSet<T> collectStatistics(String key, String[] keyStatistics) {
         this.keyStatistics = keyStatistics;
         return this;
     }

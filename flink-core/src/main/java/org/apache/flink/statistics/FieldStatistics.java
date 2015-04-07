@@ -18,9 +18,13 @@
 
 package org.apache.flink.statistics;
 
+import com.clearspring.analytics.stream.cardinality.CardinalityMergeException;
 import com.clearspring.analytics.stream.cardinality.HyperLogLog;
 import com.clearspring.analytics.stream.cardinality.ICardinality;
 import com.clearspring.analytics.stream.cardinality.LinearCounting;
+
+import java.io.Serializable;
+import java.util.ArrayList;
 
 /**
  * Gathers statistical information of a given field in a Tuple that has been emitted via a {@link org.apache.flink.util.Collector}.
@@ -31,11 +35,11 @@ import com.clearspring.analytics.stream.cardinality.LinearCounting;
  * Information that can be gathered includes min value, max value, count distinct (approximation), frequency (approximation), top-k
  *
  */
-public class FieldStatistics {
+public class FieldStatistics implements Serializable {
 
 	FieldStatisticsConfig config;
 
-	Object min;
+    Object min;
 	Object max;
 	ICardinality countDistinct;
 
@@ -51,11 +55,10 @@ public class FieldStatistics {
 
 	public void process(Object tupleObject){
 		if (tupleObject instanceof Comparable) {
-			Comparable compField = (Comparable) tupleObject;
-			if (config.collectMin && (min == null || compField.compareTo(min) < 0)) {
+			if (config.collectMin && (min == null || ((Comparable) tupleObject).compareTo(min) < 0)) {
 				min = tupleObject;
 			}
-			if (config.collectMax && (max == null || compField.compareTo(max) > 0)) {
+			if (config.collectMax && (max == null || ((Comparable) tupleObject).compareTo(max) > 0)) {
 				max = tupleObject;
 			}
 		}
@@ -63,5 +66,42 @@ public class FieldStatistics {
 			countDistinct.offer(tupleObject);
 		}
 	}
+
+    public void merge(FieldStatistics other){
+
+        if (this.config.collectMin && ((Comparable)this.min).compareTo(other.min)<0 ) {
+            this.min = other.min;
+        }
+        if (this.config.collectMax && ((Comparable)this.max).compareTo(other.max)>0 ) {
+            this.max = other.max;
+        }
+
+        try {
+            ICardinality mergedCountDistinct = this.countDistinct.merge(new ICardinality[]{this.countDistinct,other.countDistinct});
+            this.countDistinct = mergedCountDistinct;
+        } catch (CardinalityMergeException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public Object getMin() {
+        return min;
+    }
+
+    public Object getMax() {
+        return max;
+    }
+
+    public long estimateCountDistinct(){
+        return countDistinct.cardinality();
+    }
+
+    @Override
+    public String toString(){
+        String out = "\nmax: "+this.max;
+        out+="\nmin: "+this.min;
+        out+="\ncount distinct estimate: "+this.countDistinct.cardinality();
+        return out;
+    }
 
 }

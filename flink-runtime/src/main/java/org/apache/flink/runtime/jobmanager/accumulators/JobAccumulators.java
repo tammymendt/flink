@@ -24,6 +24,7 @@ import java.util.Map;
 
 import org.apache.flink.api.common.accumulators.Accumulator;
 import org.apache.flink.api.common.accumulators.AccumulatorHelper;
+import org.apache.flink.runtime.jobgraph.JobVertexID;
 
 /**
  * Simple class wrapping a map of accumulators for a single job. Just for better
@@ -32,12 +33,18 @@ import org.apache.flink.api.common.accumulators.AccumulatorHelper;
 public class JobAccumulators {
 
 	private final Map<String, Accumulator<?, ?>> accumulators = new HashMap<String, Accumulator<?, ?>>();
+    private final Map<String,Map<String, Accumulator<?,?>>> taskAccumulators = new HashMap<String,Map<String,Accumulator<?,?>>>();
 
 	public Map<String, Accumulator<?, ?>> getAccumulators() {
 		return this.accumulators;
 	}
 
-	public void processNew(Map<String, Accumulator<?, ?>> newAccumulators) {
+    public Map<String, Map<String,Accumulator<?, ?>>> getTaskAccumulators() {
+        return this.taskAccumulators;
+    }
+
+	public void processNew(JobVertexID jobVertexId, Map<String, Accumulator<?, ?>> newAccumulators) {
 		AccumulatorHelper.mergeInto(this.accumulators, newAccumulators);
+        AccumulatorHelper.mergeInto(this.taskAccumulators, jobVertexId.toString(), newAccumulators);
 	}
 }
