@@ -26,6 +26,7 @@ import org.apache.flink.runtime.jobgraph.tasks.AbstractInvokable;
 import org.apache.flink.runtime.operators.RegularPactTask;
 import org.apache.flink.runtime.operators.util.DistributedRuntimeUDFContext;
 import org.apache.flink.runtime.operators.util.TaskConfig;
+import org.apache.flink.statistics.OperatorStatistics;
 import org.apache.flink.util.Collector;
 
 /**
@@ -47,6 +48,8 @@ public abstract class ChainedDriver<IT, OT> implements Collector<IT> {
 	protected ExecutionConfig executionConfig;
 
 	protected boolean objectReuseEnabled = false;
+
+    private OperatorStatistics stats;
 
 	
 	public void setup(TaskConfig config, String taskName, Collector<OT> outputCollector,
@@ -103,4 +106,12 @@ public abstract class ChainedDriver<IT, OT> implements Collector<IT> {
 	public TaskConfig getTaskConfig() {
 		return this.config;
 	}
+
+    public OperatorStatistics getStats() {
+        return this.stats;
+    };
+
+    public void setStats(OperatorStatistics stats) {
+        this.stats = stats;
+    };
 }

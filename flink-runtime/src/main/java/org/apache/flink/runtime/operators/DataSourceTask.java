@@ -191,6 +191,8 @@ public class DataSourceTask<OT> extends AbstractInvokable {
 							if ((returned = format.nextRecord(serializer.createInstance())) != null) {
 								output.collect(returned);
 							}
+                            //every so often, or when something happens
+                            //this.getEnvironment().
 						}
 					}
 
@@ -205,7 +207,8 @@ public class DataSourceTask<OT> extends AbstractInvokable {
 			
 			// close the collector. if it is a chaining task collector, it will close its chained tasks
 			this.output.close();
-			
+            //this.getEnvironment().get
+
 			// close all chained tasks letting them report failure
 			RegularPactTask.closeChainedTasks(this.chainedTasks, this);
 			

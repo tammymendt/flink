@@ -25,6 +25,8 @@ import org.apache.flink.api.common.functions.util.FunctionUtils;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.runtime.jobgraph.tasks.AbstractInvokable;
 import org.apache.flink.runtime.operators.RegularPactTask;
+import org.apache.flink.runtime.operators.shipping.StatisticsCollectorWrapper;
+import org.apache.flink.statistics.OperatorStatistics;
 
 public class ChainedFlatMapDriver<IT, OT> extends ChainedDriver<IT, OT> {
 
@@ -77,6 +79,9 @@ public class ChainedFlatMapDriver<IT, OT> extends ChainedDriver<IT, OT> {
 	public void collect(IT record) {
 		try {
 			this.mapper.flatMap(record, this.outputCollector);
+            if (this.outputCollector instanceof StatisticsCollectorWrapper){
+                this.setStats(((StatisticsCollectorWrapper) this.outputCollector).getStats());
+            }
 		} catch (Exception ex) {
 			throw new ExceptionInChainedStubException(this.taskName, ex);
 		}

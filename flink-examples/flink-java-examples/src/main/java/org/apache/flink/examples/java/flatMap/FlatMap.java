@@ -3,6 +3,7 @@ package org.apache.flink.examples.java.flatMap;
 import org.apache.flink.api.common.functions.FlatMapFunction;
 import org.apache.flink.api.java.ExecutionEnvironment;
 import org.apache.flink.api.java.tuple.Tuple1;
+import org.apache.flink.runtime.operators.shipping.StatisticsCollectorWrapper;
 import org.apache.flink.util.Collector;
 
 /**

@@ -28,7 +28,7 @@ import org.apache.flink.util.Collector;
 public class StatisticsCollectorWrapper<T> implements Collector<T> {
 
 	private Collector<T> collector;
-	private final OperatorStatistics stats;
+	private OperatorStatistics stats;
 
 	public StatisticsCollectorWrapper(Collector<T> collector, OperatorStatistics operatorStatistics) {
 		this.collector = collector;
@@ -40,6 +40,10 @@ public class StatisticsCollectorWrapper<T> implements Collector<T> {
 		collector.collect(record);
 		stats.process(record);
 	}
+
+    public OperatorStatistics getStats(){
+        return stats;
+    }
 
 	@Override
 	public void close() {
