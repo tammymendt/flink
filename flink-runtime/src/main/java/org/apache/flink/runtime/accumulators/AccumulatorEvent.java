@@ -44,7 +44,7 @@ public class AccumulatorEvent implements Serializable {
 
 	private JobID jobID;
 
-    private JobVertexID jobVertexId;
+    private int taskIndex;
 	
 	private Map<String, Accumulator<?, ?>> accumulators;
 	
@@ -63,18 +63,18 @@ public class AccumulatorEvent implements Serializable {
 		this.jobID = jobID;
 	}
 
-    public AccumulatorEvent(JobID jobID, JobVertexID jobVertexId, Map<String, Accumulator<?, ?>> accumulators) {
+    public AccumulatorEvent(JobID jobID, int taskIndex, Map<String, Accumulator<?, ?>> accumulators) {
         this.accumulators = accumulators;
         this.jobID = jobID;
-        this.jobVertexId = jobVertexId;
+        this.taskIndex = taskIndex;
     }
 
 	public JobID getJobID() {
 		return this.jobID;
 	}
 
-    public JobVertexID getJobVertexId(){
-        return this.jobVertexId;
+    public int getTaskIndex(){
+        return this.taskIndex;
     }
 
 	public Map<String, Accumulator<?, ?>> getAccumulators(ClassLoader loader) {

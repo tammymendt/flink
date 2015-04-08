@@ -43,8 +43,9 @@ public class JobAccumulators {
         return this.taskAccumulators;
     }
 
-	public void processNew(JobVertexID jobVertexId, Map<String, Accumulator<?, ?>> newAccumulators) {
+	public void processNew(int taskIndex, Map<String, Accumulator<?, ?>> newAccumulators) {
 		AccumulatorHelper.mergeInto(this.accumulators, newAccumulators);
-        AccumulatorHelper.mergeInto(this.taskAccumulators, jobVertexId.toString(), newAccumulators);
+        //TODO this next step should be optional
+        AccumulatorHelper.mergeInto(this.taskAccumulators, String.valueOf(taskIndex), newAccumulators);
 	}
 }

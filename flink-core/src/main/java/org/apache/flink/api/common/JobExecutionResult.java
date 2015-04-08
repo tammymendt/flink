@@ -25,12 +25,19 @@ public class JobExecutionResult {
 
 	private long netRuntime;
 	private Map<String, Object> accumulatorResults;
+    private Map<String,Map<String,Object>> taskAccumulatorResults;
 
 	public JobExecutionResult(long netRuntime, Map<String, Object> accumulators) {
 		this.netRuntime = netRuntime;
 		this.accumulatorResults = accumulators;
 	}
-	
+
+    public JobExecutionResult(long netRuntime, Map<String, Object> accumulators, Map<String,Map<String,Object>> taskAccumulators) {
+        this.netRuntime = netRuntime;
+        this.accumulatorResults = accumulators;
+        this.taskAccumulatorResults = taskAccumulators;
+    }
+
 	public long getNetRuntime() {
 		return this.netRuntime;
 	}

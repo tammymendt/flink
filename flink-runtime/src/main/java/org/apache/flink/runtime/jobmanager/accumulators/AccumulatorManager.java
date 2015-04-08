@@ -53,7 +53,7 @@ public class AccumulatorManager {
 	 * Merges the new accumulators with the existing accumulators collected for
 	 * the job.
 	 */
-	public void processIncomingAccumulators(JobID jobID, JobVertexID jobVertexID,
+	public void processIncomingAccumulators(JobID jobID, int taskIndex,
 			Map<String, Accumulator<?, ?>> newAccumulators) {
 		synchronized (this.jobAccumulators) {
 			
@@ -67,7 +67,7 @@ public class AccumulatorManager {
 				this.jobAccumulators.put(jobID, jobAccumulators);
 				cleanup(jobID);
 			}
-			jobAccumulators.processNew(jobVertexID, newAccumulators);
+			jobAccumulators.processNew(taskIndex, newAccumulators);
 		}
 	}
 
@@ -86,14 +86,17 @@ public class AccumulatorManager {
 		return result;
 	}
 
-    public Map<String, Object> getTaskAccumulators(JobID jobID) {
-        Map<String, Object> result = new HashMap<String, Object>();
+    public Map<String, Map<String,Object>> getTaskAccumulatorResults(JobID jobID) {
+        Map<String, Map<String,Object>> result = new HashMap<String, Map<String,Object>>();
 
         JobAccumulators jobAccumulator = jobAccumulators.get(jobID);
 
         if(jobAccumulator != null) {
             for (Map.Entry<String, Map<String,Accumulator<?, ?>>> entry : jobAccumulator.getTaskAccumulators().entrySet()) {
-                result.put(entry.getKey(), entry.getValue());
+                result.put(entry.getKey(), new HashMap());
+                for (Map.Entry<String,Accumulator<?,?>> taskEntry: entry.getValue().entrySet()){
+                    result.get(entry.getKey()).put(taskEntry.getKey(),taskEntry.getValue().getLocalValue());
+                }
             }
         }
 
