@@ -42,6 +42,7 @@ public class FieldStatistics implements Serializable {
     Object min;
 	Object max;
 	ICardinality countDistinct;
+    long cardinality = 0;
 
 	public FieldStatistics(FieldStatisticsConfig config) {
 		this.config = config;
@@ -65,14 +66,15 @@ public class FieldStatistics implements Serializable {
 		if (config.collectCountDistinct){
 			countDistinct.offer(tupleObject);
 		}
+        cardinality+=1;
 	}
 
     public void merge(FieldStatistics other){
 
-        if (this.config.collectMin && ((Comparable)this.min).compareTo(other.min)<0 ) {
+        if (this.config.collectMin && ((Comparable)this.min).compareTo(other.min) > 0 ) {
             this.min = other.min;
         }
-        if (this.config.collectMax && ((Comparable)this.max).compareTo(other.max)>0 ) {
+        if (this.config.collectMax && ((Comparable)this.max).compareTo(other.max) < 0 ) {
             this.max = other.max;
         }
 
@@ -82,6 +84,7 @@ public class FieldStatistics implements Serializable {
         } catch (CardinalityMergeException e) {
             e.printStackTrace();
         }
+        this.cardinality+=other.cardinality;
     }
 
     public Object getMin() {
@@ -100,7 +103,8 @@ public class FieldStatistics implements Serializable {
     public String toString(){
         String out = "\nmax: "+this.max;
         out+="\nmin: "+this.min;
-        out+="\ncount distinct estimate: "+this.countDistinct.cardinality();
+        out+="\ntotal cardinality: "+this.cardinality;
+        out+="\ncount distinct estimate("+this.config.countDistinctAlgorithm+"): "+this.countDistinct.cardinality();
         return out;
     }
 
