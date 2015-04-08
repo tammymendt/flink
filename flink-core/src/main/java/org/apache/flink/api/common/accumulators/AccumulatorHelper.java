@@ -55,7 +55,6 @@ public class AccumulatorHelper {
         for (Map.Entry<String, Accumulator<?, ?>> otherEntry : toMerge.entrySet()) {
             Map<String,Accumulator<?, ?>> ownAccumulator = target.get(otherEntry.getKey());
             if (ownAccumulator == null) {
-                // Take over counter from chained task
                 target.put(otherEntry.getKey(), new HashMap<String, Accumulator<?, ?>>());
             }
             target.get(otherEntry.getKey()).put(taskIndex,otherEntry.getValue());
