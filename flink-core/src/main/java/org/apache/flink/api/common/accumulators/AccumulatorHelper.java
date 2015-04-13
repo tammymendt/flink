@@ -51,17 +51,6 @@ public class AccumulatorHelper {
 		}
 	}
 
-    public static void mergeInto(Map<String, Map<String,Accumulator<?, ?>>> target, String taskIndex, Map<String, Accumulator<?, ?>> toMerge) {
-        for (Map.Entry<String, Accumulator<?, ?>> otherEntry : toMerge.entrySet()) {
-            Map<String,Accumulator<?, ?>> ownAccumulator = target.get(otherEntry.getKey());
-            if (ownAccumulator == null) {
-                target.put(otherEntry.getKey(), new HashMap<String, Accumulator<?, ?>>());
-            }
-            target.get(otherEntry.getKey()).put(taskIndex,otherEntry.getValue());
-            //TODO this is ok if we are only getting task data once. But if it comes in more often, task accumulators should be merged too.
-        }
-    }
-
 	/**
 	 * Workaround method for type safety
 	 */

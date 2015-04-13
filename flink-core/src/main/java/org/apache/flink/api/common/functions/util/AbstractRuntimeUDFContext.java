@@ -93,11 +93,6 @@ public abstract class AbstractRuntimeUDFContext implements RuntimeContext {
 		return (DoubleCounter) getAccumulator(name, DoubleCounter.class);
 	}
 
-    @Override
-    public OperatorStatsAccumulator getOperatorStatsAccumulator(String name) {
-        return (OperatorStatsAccumulator) getAccumulator(name, OperatorStatsAccumulator.class);
-    }
-
 	@Override
 	public <V, A extends Serializable> void addAccumulator(String name, Accumulator<V, A> accumulator) {
 		if (accumulators.containsKey(name)) {
@@ -151,4 +146,18 @@ public abstract class AbstractRuntimeUDFContext implements RuntimeContext {
 		}
 		return (Accumulator<V, A>) accumulator;
 	}
+
+    @Override
+    public OperatorStatsAccumulator getOperatorStatsAccumulator(String name) {
+
+        Accumulator<?, ?> accumulator = accumulators.get(name);
+
+        if (accumulator != null) {
+            AccumulatorHelper.compareAccumulatorTypes(name, accumulator.getClass(), OperatorStatsAccumulator.class);
+        } else {
+            accumulator = new OperatorStatsAccumulator(subtaskIndex, numParallelSubtasks);
+            accumulators.put(name, accumulator);
+        }
+        return (OperatorStatsAccumulator)accumulator;
+    }
 }

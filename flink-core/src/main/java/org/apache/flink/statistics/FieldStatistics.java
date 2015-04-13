@@ -22,9 +22,13 @@ import com.clearspring.analytics.stream.cardinality.CardinalityMergeException;
 import com.clearspring.analytics.stream.cardinality.HyperLogLog;
 import com.clearspring.analytics.stream.cardinality.ICardinality;
 import com.clearspring.analytics.stream.cardinality.LinearCounting;
+import com.clearspring.analytics.stream.frequency.CountMinSketch;
+import org.apache.flink.statistics.heavyhitters.IHeavyHitter;
+import org.apache.flink.statistics.heavyhitters.LossyCounting;
+import org.apache.flink.statistics.heavyhitters.CountMinHeavyHitter;
+import org.apache.flink.statistics.heavyhitters.HeavyHitterMergeException;
 
 import java.io.Serializable;
-import java.util.ArrayList;
 
 /**
  * Gathers statistical information of a given field in a Tuple that has been emitted via a {@link org.apache.flink.util.Collector}.
@@ -42,6 +46,7 @@ public class FieldStatistics implements Serializable {
     Object min;
 	Object max;
 	ICardinality countDistinct;
+    IHeavyHitter heavyHitter;
     long cardinality = 0;
 
 	public FieldStatistics(FieldStatisticsConfig config) {
@@ -52,6 +57,14 @@ public class FieldStatistics implements Serializable {
 		if(config.countDistinctAlgorithm.equals(FieldStatisticsConfig.CountDistinctAlgorithm.HYPERLOGLOG)){
 			countDistinct = new HyperLogLog(OperatorStatistics.COUNTD_LOG2M);
 		}
+        if (config.heavyHitterAlgorithm.equals(FieldStatisticsConfig.HeavyHitterAlgorithm.LOSSY_COUNTING)){
+            heavyHitter = new LossyCounting(OperatorStatistics.HEAVY_HITTER_FRACTION,OperatorStatistics.HEAVY_HITTER_ERROR);
+        }
+        if (config.heavyHitterAlgorithm.equals(FieldStatisticsConfig.HeavyHitterAlgorithm.COUNT_MIN_SKETCH)){
+            int seed = 121311332;
+            CountMinSketch countMinSketch = new CountMinSketch(OperatorStatistics.HEAVY_HITTER_ERROR,OperatorStatistics.HEAVY_HITTER_CONFIDENCE,seed);
+            heavyHitter = new CountMinHeavyHitter(countMinSketch,OperatorStatistics.HEAVY_HITTER_FRACTION);
+        }
 	}
 
 	public void process(Object tupleObject){
@@ -66,6 +79,9 @@ public class FieldStatistics implements Serializable {
 		if (config.collectCountDistinct){
 			countDistinct.offer(tupleObject);
 		}
+        if (config.collectHeavyHitters){
+            heavyHitter.addObject(tupleObject);
+        }
         cardinality+=1;
 	}
 
@@ -76,6 +92,12 @@ public class FieldStatistics implements Serializable {
         }
         if (this.config.collectMax && ((Comparable)this.max).compareTo(other.max) < 0 ) {
             this.max = other.max;
+        }
+
+        try {
+            this.heavyHitter.merge(other.heavyHitter);
+        } catch (HeavyHitterMergeException e) {
+            e.printStackTrace();
         }
 
         try {
@@ -105,7 +127,18 @@ public class FieldStatistics implements Serializable {
         out+="\nmin: "+this.min;
         out+="\ntotal cardinality: "+this.cardinality;
         out+="\ncount distinct estimate("+this.config.countDistinctAlgorithm+"): "+this.countDistinct.cardinality();
+        out+="\n"+heavyHitter.toString();
         return out;
+    }
+
+    @Override
+    public FieldStatistics clone(){
+        FieldStatistics clone = new FieldStatistics(this.config);
+        clone.min = this.min;
+        clone.max = this.max;
+        clone.countDistinct = this.countDistinct;
+        clone.heavyHitter = this.heavyHitter;
+        return clone;
     }
 
 }

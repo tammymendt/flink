@@ -24,6 +24,7 @@ import java.util.LinkedList;
 import java.util.Map;
 
 import org.apache.flink.api.common.accumulators.Accumulator;
+import org.apache.flink.api.common.accumulators.OperatorStatsAccumulator;
 import org.apache.flink.runtime.jobgraph.JobID;
 import org.apache.flink.runtime.jobgraph.JobVertexID;
 
@@ -53,7 +54,7 @@ public class AccumulatorManager {
 	 * Merges the new accumulators with the existing accumulators collected for
 	 * the job.
 	 */
-	public void processIncomingAccumulators(JobID jobID, int taskIndex,
+	public void processIncomingAccumulators(JobID jobID,
 			Map<String, Accumulator<?, ?>> newAccumulators) {
 		synchronized (this.jobAccumulators) {
 			
@@ -67,7 +68,7 @@ public class AccumulatorManager {
 				this.jobAccumulators.put(jobID, jobAccumulators);
 				cleanup(jobID);
 			}
-			jobAccumulators.processNew(taskIndex, newAccumulators);
+			jobAccumulators.processNew(newAccumulators);
 		}
 	}
 
@@ -79,29 +80,16 @@ public class AccumulatorManager {
 		if(jobAccumulator != null) {
 			for (Map.Entry<String, Accumulator<?, ?>> entry : jobAccumulators.get(jobID)
 					.getAccumulators().entrySet()) {
-				result.put(entry.getKey(), entry.getValue().getLocalValue());
+                if (entry.getValue() instanceof OperatorStatsAccumulator){
+                    result.put(entry.getKey(), entry.getValue());
+                }else{
+                    result.put(entry.getKey(), entry.getValue().getLocalValue());
+                }
 			}
 		}
 
 		return result;
 	}
-
-    public Map<String, Map<String,Object>> getTaskAccumulatorResults(JobID jobID) {
-        Map<String, Map<String,Object>> result = new HashMap<String, Map<String,Object>>();
-
-        JobAccumulators jobAccumulator = jobAccumulators.get(jobID);
-
-        if(jobAccumulator != null) {
-            for (Map.Entry<String, Map<String,Accumulator<?, ?>>> entry : jobAccumulator.getTaskAccumulators().entrySet()) {
-                result.put(entry.getKey(), new HashMap());
-                for (Map.Entry<String,Accumulator<?,?>> taskEntry: entry.getValue().entrySet()){
-                    result.get(entry.getKey()).put(taskEntry.getKey(),taskEntry.getValue().getLocalValue());
-                }
-            }
-        }
-
-        return result;
-    }
 
 	/**
 	 * Cleanup data for the oldest jobs if the maximum number of entries is

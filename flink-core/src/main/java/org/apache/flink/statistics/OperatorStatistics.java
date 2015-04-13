@@ -32,9 +32,9 @@ public class OperatorStatistics implements Serializable{
     public static final int COUNTD_BITMAP_SIZE = 1000000;
     public static final int COUNTD_LOG2M = 1000000;
     public static final int SEED = 7364181;
-    public static final double HEAVY_HITTER_EPSILON = 0.0001;
+    public static final double HEAVY_HITTER_ERROR = 0.0001;
     public static final double HEAVY_HITTER_CONFIDENCE = 0.99;
-    public static final double HEAVY_HITTER_PHI = 0.2;
+    public static final double HEAVY_HITTER_FRACTION = 0.005;
 
     String taskName;
 	FieldStatisticsConfig[] statsConfig;

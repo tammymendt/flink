@@ -12,41 +12,49 @@ import java.io.ObjectOutputStream;
  */
 public class OperatorStatsAccumulator implements Accumulator<Object, FieldStatistics> {
 
-    private FieldStatistics local;
 
-    public OperatorStatsAccumulator(){
-        local = new FieldStatistics(new FieldStatisticsConfig(""));
+    private FieldStatistics[] local;
+    private int local_index;
+    private FieldStatistics global;
+
+    public OperatorStatsAccumulator(int subTaskIndex, int numSubtasks){
+        global = new FieldStatistics(new FieldStatisticsConfig(""));
+        local = new FieldStatistics[numSubtasks];
+        local_index = subTaskIndex;
+        local[local_index] = new FieldStatistics(new FieldStatisticsConfig(""));
     }
 
     @Override
     public void add(Object value) {
-        local.process(value);
+        local[local_index].process(value);
+        global.process(value);
     }
 
     @Override
     public FieldStatistics getLocalValue() {
-        return local;
+        return local[local_index];
     }
 
     @Override
     public void resetLocal() {
-        local = new FieldStatistics(new FieldStatisticsConfig(""));
+        local[local_index] = new FieldStatistics(new FieldStatisticsConfig(""));
     }
 
     @Override
     public void merge(Accumulator<Object, FieldStatistics> other) {
-        local.merge(other.getLocalValue());
+        local[((OperatorStatsAccumulator)other).getLocal_index()] = other.getLocalValue();
+        global.merge(other.getLocalValue());
     }
 
     @Override
     public void write(ObjectOutputStream out) throws IOException {
-        out.writeObject(local);
+        out.writeObject(local[local_index]);
     }
 
     @Override
     public void read(ObjectInputStream in) throws IOException {
         try {
-            local = (FieldStatistics) in.readObject();
+            local = (FieldStatistics[]) in.readObject();
         } catch (ClassNotFoundException e) {
             e.printStackTrace();
         }
@@ -54,8 +62,24 @@ public class OperatorStatsAccumulator implements Accumulator<Object, FieldStatis
 
     @Override
     public Accumulator<Object, FieldStatistics> clone() {
-        OperatorStatsAccumulator stats = new OperatorStatsAccumulator();
-        stats.local = this.local;
+        OperatorStatsAccumulator stats = new OperatorStatsAccumulator(this.local_index,this.local.length);
+        stats.global = this.global;
+        stats.local = new FieldStatistics[this.local.length];
+        for (int i=0;i<stats.local.length;i++){
+            stats.local[i] = this.local[i];
+        }
         return stats;
+    }
+
+    public int getLocal_index(){
+        return local_index;
+    }
+
+    public FieldStatistics[] getLocalStatistics(){
+        return this.local;
+    }
+
+    public FieldStatistics getGlobalStatistics(){
+        return this.global;
     }
 }

@@ -33,19 +33,12 @@ import org.apache.flink.runtime.jobgraph.JobVertexID;
 public class JobAccumulators {
 
 	private final Map<String, Accumulator<?, ?>> accumulators = new HashMap<String, Accumulator<?, ?>>();
-    private final Map<String,Map<String, Accumulator<?,?>>> taskAccumulators = new HashMap<String,Map<String,Accumulator<?,?>>>();
 
 	public Map<String, Accumulator<?, ?>> getAccumulators() {
 		return this.accumulators;
 	}
 
-    public Map<String, Map<String,Accumulator<?, ?>>> getTaskAccumulators() {
-        return this.taskAccumulators;
-    }
-
-	public void processNew(int taskIndex, Map<String, Accumulator<?, ?>> newAccumulators) {
+	public void processNew(Map<String, Accumulator<?, ?>> newAccumulators) {
 		AccumulatorHelper.mergeInto(this.accumulators, newAccumulators);
-        //TODO this next step should be optional
-        AccumulatorHelper.mergeInto(this.taskAccumulators, String.valueOf(taskIndex), newAccumulators);
 	}
 }

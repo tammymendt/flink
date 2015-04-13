@@ -587,7 +587,7 @@ public class RegularPactTask<S extends Function, OT> extends AbstractInvokable i
 
 		// Report accumulators to JobManager
 		JobManagerMessages.ReportAccumulatorResult accResult = new JobManagerMessages.ReportAccumulatorResult(new
-				AccumulatorEvent(env.getJobID(), env.getIndexInSubtaskGroup(), AccumulatorHelper.copy(accumulators)));
+				AccumulatorEvent(env.getJobID(), AccumulatorHelper.copy(accumulators)));
 		env.getJobManager().tell(accResult, ActorRef.noSender());
 
 		// We also clear the accumulators, since stub instances might be reused

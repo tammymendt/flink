@@ -43,8 +43,6 @@ public class AccumulatorEvent implements Serializable {
 	private static final long serialVersionUID = 8965894516006882735L;
 
 	private JobID jobID;
-
-    private int taskIndex;
 	
 	private Map<String, Accumulator<?, ?>> accumulators;
 	
@@ -63,19 +61,9 @@ public class AccumulatorEvent implements Serializable {
 		this.jobID = jobID;
 	}
 
-    public AccumulatorEvent(JobID jobID, int taskIndex, Map<String, Accumulator<?, ?>> accumulators) {
-        this.accumulators = accumulators;
-        this.jobID = jobID;
-        this.taskIndex = taskIndex;
-    }
-
 	public JobID getJobID() {
 		return this.jobID;
 	}
-
-    public int getTaskIndex(){
-        return this.taskIndex;
-    }
 
 	public Map<String, Accumulator<?, ?>> getAccumulators(ClassLoader loader) {
 		if (loader == null) {

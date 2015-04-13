@@ -27,32 +27,15 @@ import org.apache.flink.api.common.functions.Function;
 
 public class FieldStatisticsConfig {
 
-	//TODO how can this keySelector not be a Function but be directly a KeySelector object
 	private final Function keySelector;
 	private final String fieldName;
 
 	public boolean collectMin;
 	public boolean collectMax;
 	public boolean collectCountDistinct;
+    public boolean collectHeavyHitters;
 	public CountDistinctAlgorithm countDistinctAlgorithm;
-
-	public FieldStatisticsConfig(Function keySelector, boolean collectMin, boolean collectMax, boolean collectCountDistinct){
-		this.keySelector = keySelector;
-		this.fieldName = null;
-		this.collectMin = collectMin;
-		this.collectMax = collectMax;
-		this.collectCountDistinct = collectCountDistinct;
-		this.countDistinctAlgorithm = CountDistinctAlgorithm.LINEAR_COUNTING;
-	}
-
-	public FieldStatisticsConfig(String fieldName, boolean collectMin, boolean collectMax, boolean collectCountDistinct){
-		this.keySelector = null;
-		this.fieldName = fieldName;
-		this.collectMin = collectMin;
-		this.collectMax = collectMax;
-		this.collectCountDistinct = collectCountDistinct;
-		this.countDistinctAlgorithm = CountDistinctAlgorithm.LINEAR_COUNTING;
-	}
+    public HeavyHitterAlgorithm heavyHitterAlgorithm;
 
 	public FieldStatisticsConfig(Function keySelector) {
 		this.keySelector = keySelector;
@@ -60,7 +43,9 @@ public class FieldStatisticsConfig {
 		this.collectMin = true;
 		this.collectMax = true;
 		this.collectCountDistinct = true;
+        this.collectHeavyHitters = true;
 		this.countDistinctAlgorithm = CountDistinctAlgorithm.LINEAR_COUNTING;
+        this.heavyHitterAlgorithm = HeavyHitterAlgorithm.LOSSY_COUNTING;
 	}
 
 	public FieldStatisticsConfig(String fieldName) {
@@ -69,7 +54,9 @@ public class FieldStatisticsConfig {
 		this.collectMin = true;
 		this.collectMax = true;
 		this.collectCountDistinct = true;
+        this.collectHeavyHitters = true;
 		this.countDistinctAlgorithm = CountDistinctAlgorithm.LINEAR_COUNTING;
+        this.heavyHitterAlgorithm = HeavyHitterAlgorithm.LOSSY_COUNTING;
 	}
 
 	public Function getKeySelector() {
@@ -83,8 +70,14 @@ public class FieldStatisticsConfig {
 	public enum CountDistinctAlgorithm {
 
 		LINEAR_COUNTING,
-		HYPERLOGLOG;
+		HYPERLOGLOG,
+        HYPERLLPLUS;
 
 	}
+
+    public enum HeavyHitterAlgorithm{
+        LOSSY_COUNTING,
+        COUNT_MIN_SKETCH;
+    }
 
 }

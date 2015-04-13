@@ -331,7 +331,6 @@ Actor with ActorLogMessages with ActorLogging {
               newJobStatus match {
                 case JobStatus.FINISHED =>
                   val accumulatorResults = accumulatorManager.getJobAccumulatorResults(jobID)
-                  val taskAccumulatorResults = accumulatorManager.getTaskAccumulatorResults(jobID)
                   jobInfo.client ! JobResultSuccess(jobID, jobInfo.duration, accumulatorResults)
                 case JobStatus.CANCELED =>
                   jobInfo.client ! JobResultCanceled(jobID, optionalMessage)
@@ -377,7 +376,7 @@ Actor with ActorLogMessages with ActorLogging {
     }
 
     case ReportAccumulatorResult(accumulatorEvent) => {
-      accumulatorManager.processIncomingAccumulators(accumulatorEvent.getJobID, accumulatorEvent.getTaskIndex,
+      accumulatorManager.processIncomingAccumulators(accumulatorEvent.getJobID,
         accumulatorEvent.getAccumulators
         (libraryCacheManager.getClassLoader(accumulatorEvent.getJobID)))
     }
