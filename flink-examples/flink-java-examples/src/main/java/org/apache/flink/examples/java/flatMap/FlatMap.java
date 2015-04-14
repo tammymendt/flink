@@ -29,12 +29,10 @@ public class FlatMap {
                 flatMap(new RichFlatMapFunction<String, Tuple2<Integer, Integer>>() {
 
                     private OperatorStatsAccumulator intAccumulator;
-                    //private IntCounter counterAccumulator;
 
                     @Override
                     public void open(Configuration parameters) {
                         intAccumulator = getRuntimeContext().getOperatorStatsAccumulator("intAccumulator");
-                        //counterAccumulator = getRuntimeContext().getIntCounter("intCounter");
                     }
 
                     @Override
@@ -43,10 +41,6 @@ public class FlatMap {
                         try {
                             intValue = Integer.parseInt(value);
                             intAccumulator.add(intValue);
-                            //counterAccumulator.add(1);
-                            /*if (intValue % 5 == 0) {
-                                zeroAccumulator.add(intValue);
-                            }*/
                             out.collect(new Tuple2(intValue % 5, intValue));
                         } catch (NumberFormatException ex) {
                         }
@@ -55,14 +49,14 @@ public class FlatMap {
 
                     //.collectStatistics("flatMapStats", new String[]{"f0"})
 
-                    // execute program
-                    JobExecutionResult result = env.execute("Simple Flat Map Example");
-                    OperatorStatsAccumulator op = result.getAccumulatorResult("intAccumulator");
-                    System.out.println("Global Stats");
-                    System.out.println(op.getGlobalStatistics().toString());
-                    for (int i=0;i<op.getLocalStatistics().length;i++){
-                        System.out.println("Local Stats " + i);
-                        System.out.println(op.getLocalStatistics()[i].toString());
-                    }
+        // execute program
+        JobExecutionResult result = env.execute("Simple Flat Map Example");
+        OperatorStatsAccumulator op = result.getAccumulatorResult("intAccumulator");
+        System.out.println("Global Stats");
+        System.out.println(op.getGlobalStatistics().toString());
+        for (int i=0;i<op.getLocalStatistics().length;i++){
+            System.out.println("Local Stats " + i);
+            System.out.println(op.getLocalStatistics()[i].toString());
+        }
     }
 }

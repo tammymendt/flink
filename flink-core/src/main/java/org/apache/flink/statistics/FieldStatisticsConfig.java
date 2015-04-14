@@ -59,6 +59,17 @@ public class FieldStatisticsConfig {
         this.heavyHitterAlgorithm = HeavyHitterAlgorithm.LOSSY_COUNTING;
 	}
 
+    public FieldStatisticsConfig(CountDistinctAlgorithm countDistinct, HeavyHitterAlgorithm heavyHitter) {
+        this.fieldName = "";
+        this.keySelector = null;
+        this.collectMin = true;
+        this.collectMax = true;
+        this.collectCountDistinct = true;
+        this.collectHeavyHitters = true;
+        this.countDistinctAlgorithm = countDistinct;
+        this.heavyHitterAlgorithm = heavyHitter;
+    }
+
 	public Function getKeySelector() {
 		return keySelector;
 	}
