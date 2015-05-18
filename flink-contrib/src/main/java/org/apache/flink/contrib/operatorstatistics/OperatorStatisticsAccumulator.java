@@ -17,13 +17,7 @@
  */
 package org.apache.flink.contrib.operatorstatistics;
 
-import com.clearspring.analytics.stream.cardinality.LinearCounting;
 import org.apache.flink.api.common.accumulators.Accumulator;
-import org.apache.flink.contrib.operatorstatistics.heavyhitters.CountMinHeavyHitter;
-
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 
 /**
  * This accumulator wraps the class {@link OperatorStatistics} to track
@@ -35,7 +29,11 @@ public class OperatorStatisticsAccumulator implements Accumulator<Object, Operat
 	private OperatorStatistics local;
 
 	public OperatorStatisticsAccumulator(){
-		local = new OperatorStatistics(new OperatorStatisticsConfig());
+		local = new OperatorStatistics(new OperatorStatisticsConfig(true));
+	}
+
+	public OperatorStatisticsAccumulator(OperatorStatisticsConfig config){
+		local = new OperatorStatistics(config);
 	}
 
 	@Override
@@ -50,7 +48,7 @@ public class OperatorStatisticsAccumulator implements Accumulator<Object, Operat
 
 	@Override
 	public void resetLocal() {
-		local = new OperatorStatistics(new OperatorStatisticsConfig());
+		local = new OperatorStatistics(new OperatorStatisticsConfig(true));
 	}
 
 	@Override
@@ -63,11 +61,5 @@ public class OperatorStatisticsAccumulator implements Accumulator<Object, Operat
 		OperatorStatisticsAccumulator clone = new OperatorStatisticsAccumulator();
 		clone.local = this.local.clone();
 		return clone;
-	}
-
-	public class MergeException extends Exception{
-		public MergeException(String message) {
-			super(message);
-		}
 	}
 }

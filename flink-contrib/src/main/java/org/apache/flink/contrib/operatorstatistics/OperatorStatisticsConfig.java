@@ -48,13 +48,20 @@ public class OperatorStatisticsConfig implements Serializable {
 	public CountDistinctAlgorithm countDistinctAlgorithm;
 	public HeavyHitterAlgorithm heavyHitterAlgorithm;
 
-	public OperatorStatisticsConfig(){
-		this.collectMin = true;
-		this.collectMax = true;
-		this.collectCountDistinct = true;
-		this.collectHeavyHitters = true;
-		this.countDistinctAlgorithm = CountDistinctAlgorithm.HYPERLOGLOG;
-		this.heavyHitterAlgorithm = HeavyHitterAlgorithm.LOSSY_COUNTING;
+	public OperatorStatisticsConfig(boolean trackStats){
+		if (trackStats){
+			this.collectMin = true;
+			this.collectMax = true;
+			this.collectCountDistinct = true;
+			this.collectHeavyHitters = true;
+			this.countDistinctAlgorithm = CountDistinctAlgorithm.HYPERLOGLOG;
+			this.heavyHitterAlgorithm = HeavyHitterAlgorithm.LOSSY_COUNTING;
+		} else {
+			this.collectMin = false;
+			this.collectMax = false;
+			this.collectCountDistinct = false;
+			this.collectHeavyHitters = false;
+		}
 	}
 
 	public OperatorStatisticsConfig(CountDistinctAlgorithm countDistinct, HeavyHitterAlgorithm heavyHitter) {

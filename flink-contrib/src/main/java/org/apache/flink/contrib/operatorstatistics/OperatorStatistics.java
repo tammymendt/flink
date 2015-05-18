@@ -56,22 +56,26 @@ public class OperatorStatistics implements Serializable {
 
 	public OperatorStatistics(OperatorStatisticsConfig config) {
 		this.config = config;
-		if (config.countDistinctAlgorithm.equals(OperatorStatisticsConfig.CountDistinctAlgorithm.LINEAR_COUNTING)) {
-			countDistinct = new LinearCounting(OperatorStatisticsConfig.COUNTD_BITMAP_SIZE);
+		if (config.collectCountDistinct){
+			if (config.countDistinctAlgorithm.equals(OperatorStatisticsConfig.CountDistinctAlgorithm.LINEAR_COUNTING)) {
+				countDistinct = new LinearCounting(OperatorStatisticsConfig.COUNTD_BITMAP_SIZE);
+			}
+			if(config.countDistinctAlgorithm.equals(OperatorStatisticsConfig.CountDistinctAlgorithm.HYPERLOGLOG)){
+				countDistinct = new HyperLogLog(OperatorStatisticsConfig.COUNTD_LOG2M);
+			}
 		}
-		if(config.countDistinctAlgorithm.equals(OperatorStatisticsConfig.CountDistinctAlgorithm.HYPERLOGLOG)){
-			countDistinct = new HyperLogLog(OperatorStatisticsConfig.COUNTD_LOG2M);
-		}
-		if (config.heavyHitterAlgorithm.equals(OperatorStatisticsConfig.HeavyHitterAlgorithm.LOSSY_COUNTING)){
-			heavyHitter =
-					new LossyCounting(OperatorStatisticsConfig.HEAVY_HITTER_FRACTION, OperatorStatisticsConfig.HEAVY_HITTER_ERROR);
-		}
-		if (config.heavyHitterAlgorithm.equals(OperatorStatisticsConfig.HeavyHitterAlgorithm.COUNT_MIN_SKETCH)){
-			heavyHitter =
-					new CountMinHeavyHitter(OperatorStatisticsConfig.HEAVY_HITTER_FRACTION,
-											OperatorStatisticsConfig.HEAVY_HITTER_ERROR,
-											OperatorStatisticsConfig.HEAVY_HITTER_CONFIDENCE,
-											OperatorStatisticsConfig.HEAVY_HITTER_SEED);
+		if (config.collectHeavyHitters){
+			if (config.heavyHitterAlgorithm.equals(OperatorStatisticsConfig.HeavyHitterAlgorithm.LOSSY_COUNTING)){
+				heavyHitter =
+						new LossyCounting(OperatorStatisticsConfig.HEAVY_HITTER_FRACTION, OperatorStatisticsConfig.HEAVY_HITTER_ERROR);
+			}
+			if (config.heavyHitterAlgorithm.equals(OperatorStatisticsConfig.HeavyHitterAlgorithm.COUNT_MIN_SKETCH)){
+				heavyHitter =
+						new CountMinHeavyHitter(OperatorStatisticsConfig.HEAVY_HITTER_FRACTION,
+								OperatorStatisticsConfig.HEAVY_HITTER_ERROR,
+								OperatorStatisticsConfig.HEAVY_HITTER_CONFIDENCE,
+								OperatorStatisticsConfig.HEAVY_HITTER_SEED);
+			}
 		}
 	}
 
@@ -84,8 +88,12 @@ public class OperatorStatistics implements Serializable {
 				max = tupleObject;
 			}
 		}
-		countDistinct.offer(tupleObject);
-		heavyHitter.addObject(tupleObject);
+		if (config.collectCountDistinct){
+			countDistinct.offer(tupleObject);
+		}
+		if (config.collectHeavyHitters){
+			heavyHitter.addObject(tupleObject);
+		}
 		cardinality+=1;
 	}
 
@@ -102,17 +110,21 @@ public class OperatorStatistics implements Serializable {
 			}
 		}
 
-		try {
-			ICardinality mergedCountDistinct = this.countDistinct.merge(new ICardinality[]{this.countDistinct,other.countDistinct});
-			this.countDistinct = mergedCountDistinct;
-		} catch (CardinalityMergeException e) {
-			throw new RuntimeException("Error merging count distinct structures",e);
+		if (this.config.collectCountDistinct) {
+			try {
+				ICardinality mergedCountDistinct = this.countDistinct.merge(new ICardinality[]{this.countDistinct, other.countDistinct});
+				this.countDistinct = mergedCountDistinct;
+			} catch (CardinalityMergeException e) {
+				throw new RuntimeException("Error merging count distinct structures", e);
+			}
 		}
 
-		try {
-			this.heavyHitter.merge(other.heavyHitter);
-		} catch (HeavyHitterMergeException e) {
-			throw new RuntimeException("Error merging heavy hitter structures",e);
+		if (this.config.collectHeavyHitters) {
+			try {
+				this.heavyHitter.merge(other.heavyHitter);
+			} catch (HeavyHitterMergeException e) {
+				throw new RuntimeException("Error merging heavy hitter structures", e);
+			}
 		}
 
 		this.cardinality+=other.cardinality;
@@ -136,12 +148,20 @@ public class OperatorStatistics implements Serializable {
 
 	@Override
 	public String toString(){
-		String out = "\nmax: "+this.max;
-		out+="\nmin: "+this.min;
-		out+="\ntotal cardinality: "+this.cardinality;
-		out+="\ncount distinct estimate("+this.config.countDistinctAlgorithm+"): "+this.countDistinct.cardinality();
-		out+="\nheavy hitters ("+this.config.heavyHitterAlgorithm +"):";
-		out+="\n"+heavyHitter.toString();
+		String out = "\ntotal cardinality: "+this.cardinality;
+		if (this.config.collectMin){
+			out+="\nmin: "+this.min;
+		}
+		if (this.config.collectMax){
+			out+= "\nmax: "+this.max;
+		}
+		if (this.config.collectCountDistinct){
+			out+="\ncount distinct estimate("+this.config.countDistinctAlgorithm+"): "+this.countDistinct.cardinality();
+		}
+		if (this.config.collectHeavyHitters){
+			out+="\nheavy hitters ("+this.config.heavyHitterAlgorithm +"):";
+			out+="\n"+heavyHitter.toString();
+		}
 		return out;
 	}
 
@@ -157,25 +177,33 @@ public class OperatorStatistics implements Serializable {
 
 	private void writeObject(ObjectOutputStream out) throws IOException {
 		out.defaultWriteObject();
-		if (this.config.countDistinctAlgorithm.equals(OperatorStatisticsConfig.CountDistinctAlgorithm.LINEAR_COUNTING)){
-			out.writeObject(countDistinct.getBytes());
-		}else{
-			out.writeObject(countDistinct);
+		if (this.config.collectCountDistinct){
+			if (this.config.countDistinctAlgorithm.equals(OperatorStatisticsConfig.CountDistinctAlgorithm.LINEAR_COUNTING)){
+				out.writeObject(countDistinct.getBytes());
+			}else{
+				out.writeObject(countDistinct);
+			}
 		}
-		out.writeObject(heavyHitter);
+		if (this.config.collectHeavyHitters){
+			out.writeObject(heavyHitter);
+		}
 	}
 
 	private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
 		in.defaultReadObject();
-		if (this.config.countDistinctAlgorithm.equals(OperatorStatisticsConfig.CountDistinctAlgorithm.LINEAR_COUNTING)){
-			countDistinct = new LinearCounting((byte[])in.readObject());
-		}else{
-			countDistinct = (HyperLogLog)in.readObject();
+		if (this.config.collectCountDistinct){
+			if (this.config.countDistinctAlgorithm.equals(OperatorStatisticsConfig.CountDistinctAlgorithm.LINEAR_COUNTING)){
+				countDistinct = new LinearCounting((byte[])in.readObject());
+			}else{
+				countDistinct = (HyperLogLog)in.readObject();
+			}
 		}
-		if (this.config.heavyHitterAlgorithm.equals(OperatorStatisticsConfig.HeavyHitterAlgorithm.LOSSY_COUNTING)){
-			heavyHitter = (LossyCounting)in.readObject();
-		}else{
-			heavyHitter = (CountMinHeavyHitter)in.readObject();
+		if (this.config.collectHeavyHitters){
+			if (this.config.heavyHitterAlgorithm.equals(OperatorStatisticsConfig.HeavyHitterAlgorithm.LOSSY_COUNTING)){
+				heavyHitter = (LossyCounting)in.readObject();
+			}else{
+				heavyHitter = (CountMinHeavyHitter)in.readObject();
+			}
 		}
 	}
 

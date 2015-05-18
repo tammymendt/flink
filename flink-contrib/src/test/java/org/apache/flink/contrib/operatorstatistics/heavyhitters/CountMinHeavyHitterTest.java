@@ -19,7 +19,6 @@
 package org.apache.flink.contrib.operatorstatistics.heavyhitters;
 
 import com.clearspring.analytics.stream.frequency.CountMinSketch;
-import org.apache.flink.contrib.operatorstatistics.heavyhitters.CountMinHeavyHitter;
 import org.junit.Test;
 
 import java.util.Map;
