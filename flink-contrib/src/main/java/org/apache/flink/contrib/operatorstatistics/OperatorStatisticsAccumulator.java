@@ -17,13 +17,7 @@
  */
 package org.apache.flink.contrib.operatorstatistics;
 
-import com.clearspring.analytics.stream.cardinality.LinearCounting;
 import org.apache.flink.api.common.accumulators.Accumulator;
-import org.apache.flink.contrib.operatorstatistics.heavyhitters.CountMinHeavyHitter;
-
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 
 /**
  * This accumulator wraps the class {@link OperatorStatistics} to track
