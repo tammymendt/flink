@@ -41,10 +41,10 @@ public class OperatorStatisticsConfig implements Serializable {
 	public static final double HEAVY_HITTER_FRACTION = 0.05;
 	public static final double HEAVY_HITTER_ERROR = 0.0005;
 
-	public boolean collectMin;
-	public boolean collectMax;
-	public boolean collectCountDistinct;
-	public boolean collectHeavyHitters;
+	public boolean collectMin = false;
+	public boolean collectMax = false;
+	public boolean collectCountDistinct = false;
+	public boolean collectHeavyHitters = false;
 	public CountDistinctAlgorithm countDistinctAlgorithm;
 	public HeavyHitterAlgorithm heavyHitterAlgorithm;
 

@@ -42,37 +42,32 @@ import java.util.Map;
 public class OperatorStatisticsExperiment {
 
 	private static final Logger LOG = LoggerFactory.getLogger(OperatorStatisticsExperiment.class);
+
 	private static final String ACCUMULATOR_NAME = "op-stats";
-	private static final String[] ALGORITHMS = {"none","minmax","lossy","countmin","hyperloglog","linearc"};
 
-	public static void main(String[] args) throws Exception{
+	private static final String[] ALGORITHMS = {"none", "minmax", "lossy", "countmin", "hyperloglog", "linearc"};
 
-		long startTime = System.currentTimeMillis();
+	public static void main(String[] args) throws Exception {
 
-		if(!parseParameters(args)) {
+		if (!parseParameters(args)) {
 			return;
 		}
 		configOperatorStatistics();
 
 		final ExecutionEnvironment env = ExecutionEnvironment.getExecutionEnvironment();
 
-		env.readTextFile(inputPath).flatMap(new StringToInt()).
-				output(new DiscardingOutputFormat<Tuple1<Integer>>());
+		env.readTextFile(inputPath).flatMap(new StringToInt()).output(new DiscardingOutputFormat<Tuple1<Integer>>());
 
 		JobExecutionResult result = env.execute();
 
-		long stopTime = System.currentTimeMillis();
-		long elapsedTime = stopTime - startTime;
-		System.out.println("Elapsed time: "+elapsedTime);
-
 		OperatorStatistics globalStats = result.getAccumulatorResult(ACCUMULATOR_NAME);
-		System.out.println("\nGlobal Stats: "+globalStats.toString());
+		System.out.println("\nGlobal Stats: " + globalStats.toString());
 
-		Map<String,Object> accResults = result.getAllAccumulatorResults();
+		Map<String, Object> accResults = result.getAllAccumulatorResults();
 
 		ArrayList<OperatorStatistics> localStats = new ArrayList<OperatorStatistics>();
 
-		for (String accumulatorName:accResults.keySet()) {
+		for (String accumulatorName : accResults.keySet()) {
 			if (accumulatorName.contains(ACCUMULATOR_NAME + "-")) {
 				localStats.add((OperatorStatistics) accResults.get(accumulatorName));
 			}
@@ -81,28 +76,29 @@ public class OperatorStatisticsExperiment {
 	}
 
 	// *************************************************************************
-	//     USER FUNCTIONS
+	// USER FUNCTIONS
 	// *************************************************************************
 
 	public static class StringToInt extends RichFlatMapFunction<String, Tuple1<Integer>> {
 
 		Accumulator<Object, Serializable> globalAccumulator;
-		Accumulator<Object,Serializable> localAccumulator;
+
+		Accumulator<Object, Serializable> localAccumulator;
 
 		@Override
 		public void open(Configuration parameters) {
 
 			globalAccumulator = getRuntimeContext().getAccumulator(ACCUMULATOR_NAME);
-			if (globalAccumulator==null){
+			if (globalAccumulator == null) {
 				getRuntimeContext().addAccumulator(ACCUMULATOR_NAME, new OperatorStatisticsAccumulator(opStatsConfig));
 				globalAccumulator = getRuntimeContext().getAccumulator(ACCUMULATOR_NAME);
 			}
 
 			int subTaskIndex = getRuntimeContext().getIndexOfThisSubtask();
-			localAccumulator = getRuntimeContext().getAccumulator(ACCUMULATOR_NAME+"-"+subTaskIndex);
-			if (localAccumulator==null){
-				getRuntimeContext().addAccumulator(ACCUMULATOR_NAME+"-"+subTaskIndex, new OperatorStatisticsAccumulator(opStatsConfig));
-				localAccumulator = getRuntimeContext().getAccumulator(ACCUMULATOR_NAME+"-"+subTaskIndex);
+			localAccumulator = getRuntimeContext().getAccumulator(ACCUMULATOR_NAME + "-" + subTaskIndex);
+			if (localAccumulator == null) {
+				getRuntimeContext().addAccumulator(ACCUMULATOR_NAME + "-" + subTaskIndex, new OperatorStatisticsAccumulator(opStatsConfig));
+				localAccumulator = getRuntimeContext().getAccumulator(ACCUMULATOR_NAME + "-" + subTaskIndex);
 			}
 		}
 
@@ -113,33 +109,34 @@ public class OperatorStatisticsExperiment {
 				intValue = Integer.parseInt(value);
 				localAccumulator.add(intValue);
 				out.collect(new Tuple1(intValue));
-			} catch (NumberFormatException ex) {
-			}
+			} catch (NumberFormatException ex) {}
 		}
 
 		@Override
-		public void close(){
+		public void close() {
 			globalAccumulator.merge(localAccumulator);
 		}
 	}
 
 	// *************************************************************************
-	//     UTIL METHODS
+	// UTIL METHODS
 	// *************************************************************************
 
 	private static String inputPath;
+
 	private static String algorithm;
+
 	private static OperatorStatisticsConfig opStatsConfig;
 
 	private static boolean parseParameters(String[] args) {
 
 		// parse input arguments
-		if(args.length == 2) {
+		if (args.length == 2) {
 			inputPath = args[0];
 			algorithm = args[1];
-			if (!Arrays.asList(ALGORITHMS).contains(algorithm)){
+			if (!Arrays.asList(ALGORITHMS).contains(algorithm)) {
 				return false;
-			}else{
+			} else {
 				return true;
 			}
 		} else {
@@ -149,21 +146,21 @@ public class OperatorStatisticsExperiment {
 		}
 	}
 
-	private static void configOperatorStatistics(){
+	private static void configOperatorStatistics() {
 		opStatsConfig = new OperatorStatisticsConfig(false);
-		if (algorithm.equals("minmax")){
+		if (algorithm.equals("minmax")) {
 			opStatsConfig.collectMin = true;
 			opStatsConfig.collectMax = true;
-		}else if(algorithm.equals("hyperloglog")){
+		} else if (algorithm.equals("hyperloglog")) {
 			opStatsConfig.collectCountDistinct = true;
 			opStatsConfig.countDistinctAlgorithm = OperatorStatisticsConfig.CountDistinctAlgorithm.HYPERLOGLOG;
-		}else if(algorithm.equals("linearc")) {
+		} else if (algorithm.equals("linearc")) {
 			opStatsConfig.collectCountDistinct = true;
 			opStatsConfig.countDistinctAlgorithm = OperatorStatisticsConfig.CountDistinctAlgorithm.LINEAR_COUNTING;
-		} else if(algorithm.equals("lossy")){
+		} else if (algorithm.equals("lossy")) {
 			opStatsConfig.collectHeavyHitters = true;
 			opStatsConfig.heavyHitterAlgorithm = OperatorStatisticsConfig.HeavyHitterAlgorithm.LOSSY_COUNTING;
-		}else if(algorithm.equals("countmin")){
+		} else if (algorithm.equals("countmin")) {
 			opStatsConfig.collectHeavyHitters = true;
 			opStatsConfig.heavyHitterAlgorithm = OperatorStatisticsConfig.HeavyHitterAlgorithm.COUNT_MIN_SKETCH;
 		}
