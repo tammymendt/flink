@@ -48,9 +48,9 @@ public class OperatorStatistics implements Serializable {
 
 	OperatorStatisticsConfig config;
 
-	Object min;
-	Object max;
 	long cardinality = 0;
+	transient Object min;
+	transient Object max;
 	transient ICardinality countDistinct;
 	transient HeavyHitter heavyHitter;
 
@@ -177,6 +177,12 @@ public class OperatorStatistics implements Serializable {
 
 	private void writeObject(ObjectOutputStream out) throws IOException {
 		out.defaultWriteObject();
+		if (this.config.collectMin){
+			out.writeObject(min);
+		}
+		if (this.config.collectMax){
+			out.writeObject(max);
+		}
 		if (this.config.collectCountDistinct){
 			if (this.config.countDistinctAlgorithm.equals(OperatorStatisticsConfig.CountDistinctAlgorithm.LINEAR_COUNTING)){
 				out.writeObject(countDistinct.getBytes());
@@ -191,6 +197,12 @@ public class OperatorStatistics implements Serializable {
 
 	private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
 		in.defaultReadObject();
+		if (this.config.collectMin){
+			in.readObject();
+		}
+		if (this.config.collectMax){
+			in.readObject();
+		}
 		if (this.config.collectCountDistinct){
 			if (this.config.countDistinctAlgorithm.equals(OperatorStatisticsConfig.CountDistinctAlgorithm.LINEAR_COUNTING)){
 				countDistinct = new LinearCounting((byte[])in.readObject());
