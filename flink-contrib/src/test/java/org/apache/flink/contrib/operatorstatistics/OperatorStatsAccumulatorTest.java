@@ -19,7 +19,6 @@
 package org.apache.flink.contrib.operatorstatistics;
 
 import org.apache.flink.api.common.JobExecutionResult;
-import org.apache.flink.api.common.accumulators.Accumulator;
 import org.apache.flink.api.common.functions.RichFlatMapFunction;
 import org.apache.flink.api.java.ExecutionEnvironment;
 import org.apache.flink.api.java.io.DiscardingOutputFormat;
@@ -32,17 +31,16 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.Serializable;
 import java.util.Map;
 import java.util.Random;
 
-public class OperatorStatsAccumulatorsTest extends AbstractTestBase {
+public class OperatorStatsAccumulatorTest extends AbstractTestBase {
 
-	private static final Logger LOG = LoggerFactory.getLogger(OperatorStatsAccumulatorsTest.class);
+	private static final Logger LOG = LoggerFactory.getLogger(OperatorStatsAccumulatorTest.class);
 
 	private static final String ACCUMULATOR_NAME = "op-stats";
 
-	public OperatorStatsAccumulatorsTest(){
+	public OperatorStatsAccumulatorTest(){
 		super(new Configuration());
 	}
 
@@ -55,7 +53,7 @@ public class OperatorStatsAccumulatorsTest extends AbstractTestBase {
 
 		for (int i = 1; i < 1000; i++) {
 			if(rand.nextDouble()<0.2){
-				input+=String.valueOf(rand.nextInt(5))+"\n";
+				input+=String.valueOf(rand.nextInt(4))+"\n";
 			}else{
 				input+=String.valueOf(rand.nextInt(100))+"\n";
 			}
@@ -71,67 +69,70 @@ public class OperatorStatsAccumulatorsTest extends AbstractTestBase {
 
 		JobExecutionResult result = env.execute();
 
-		OperatorStatistics globalStats = result.getAccumulatorResult(ACCUMULATOR_NAME);
+		OperatorStatisticArray globalStats = result.getAccumulatorResult(ACCUMULATOR_NAME);
 		System.out.println("Global Stats");
 		System.out.println(globalStats.toString());
 
-		OperatorStatistics merged = null;
+		OperatorStatisticArray merged = new OperatorStatisticArray();
 
 		Map<String,Object> accResults = result.getAllAccumulatorResults();
 		for (String accumulatorName:accResults.keySet()){
 			if (accumulatorName.contains(ACCUMULATOR_NAME+"-")){
-				OperatorStatistics localStats = (OperatorStatistics) accResults.get(accumulatorName);
-				LOG.debug("Local Stats: " + accumulatorName);
-				LOG.debug(localStats.toString());
-				if (merged == null){
-					merged = localStats;
-				}else {
+				OperatorStatisticArray localStats =  (OperatorStatisticArray)accResults.get(accumulatorName);
+				System.out.println("Local Stats: " + accumulatorName);
+				System.out.println(localStats.toString());
+				if (merged.getArray().isEmpty()){
+					merged.addAll(localStats.getArray());
+				}else{
 					merged.merge(localStats);
 				}
 			}
 		}
 
-		LOG.debug("Local Stats Merged: \n");
-		LOG.debug(merged.toString());
+		System.out.println("Local Stats Merged: \n");
+		System.out.println(merged.toString());
 
-		Assert.assertEquals("Global cardinality should be 999", 999, globalStats.cardinality);
-		Assert.assertEquals("Count distinct should be around 100", 100.0, (double)globalStats.estimateCountDistinct(),2.0);
+		Assert.assertEquals("Global cardinality should be 999", 999, globalStats.getCardinality());
+		Assert.assertEquals("Count distinct should be around 100 (+/- 5)", 100.0, (double)globalStats.getCountDistinctEstimate(),5.0);
 		Assert.assertTrue("The total number of heavy hitters should be between 0 and 5"
 				, globalStats.getHeavyHitters().size() > 0 && globalStats.getHeavyHitters().size() <= 5);
 		Assert.assertEquals("Min when merging the local accumulators should correspond with min" +
-				"of the global accumulator",merged.getMin(),globalStats.getMin());
+				"of the global accumulator", merged.getMin(), globalStats.getMin());
 		Assert.assertEquals("Max resulting from merging the local accumulators should correspond to" +
 				"max of the global accumulator",merged.getMax(),globalStats.getMax());
 		Assert.assertEquals("Count distinct when merging the local accumulators should correspond to " +
-				"count distinct in the global accumulator",merged.estimateCountDistinct(),globalStats.estimateCountDistinct());
+				"count distinct in the global accumulator",merged.getCountDistinctEstimate(),globalStats.getCountDistinctEstimate());
 		Assert.assertEquals("The number of heavy hitters when merging the local accumulators should correspond " +
 				"to the number of heavy hitters in the global accumulator",merged.getHeavyHitters().size(),globalStats.getHeavyHitters().size());
 	}
 
 	public static class StringToInt extends RichFlatMapFunction<String, Tuple1<Integer>> {
 
-		// Is instantiated later since the runtime context is not yet initialized
-		private Accumulator<Object, Serializable> globalAccumulator;
-		private Accumulator<Object,Serializable> localAccumulator;
-		OperatorStatisticsConfig accumulatorConfig = new OperatorStatisticsConfig(
-				OperatorStatisticsConfig.CountDistinctAlgorithm.HYPERLOGLOG,
-				OperatorStatisticsConfig.HeavyHitterAlgorithm.COUNT_MIN_SKETCH);
+		private OperatorStatisticsAccumulator globalAccumulator;
+		private OperatorStatisticsAccumulator localAccumulator;
 
 		@Override
 		public void open(Configuration parameters) {
-			// Add globalAccumulator using convenience function
 
-			globalAccumulator = getRuntimeContext().getAccumulator(ACCUMULATOR_NAME);
+			globalAccumulator = (OperatorStatisticsAccumulator)getRuntimeContext().getAccumulator(ACCUMULATOR_NAME);
 			if (globalAccumulator==null){
-				getRuntimeContext().addAccumulator(ACCUMULATOR_NAME, new OperatorStatisticsAccumulator(accumulatorConfig));
-				globalAccumulator = getRuntimeContext().getAccumulator(ACCUMULATOR_NAME);
+				globalAccumulator = new OperatorStatisticsAccumulator()
+									.collectMin()
+									.collectMax()
+									.collectCountDistinct()
+									.collectHeavyHitter();
+				getRuntimeContext().addAccumulator(ACCUMULATOR_NAME, globalAccumulator);
 			}
 
 			int subTaskIndex = getRuntimeContext().getIndexOfThisSubtask();
-			localAccumulator = getRuntimeContext().getAccumulator(ACCUMULATOR_NAME+"-"+subTaskIndex);
+			localAccumulator = (OperatorStatisticsAccumulator)getRuntimeContext().getAccumulator(ACCUMULATOR_NAME+"-"+subTaskIndex);
 			if (localAccumulator==null){
-				getRuntimeContext().addAccumulator(ACCUMULATOR_NAME+"-"+subTaskIndex, new OperatorStatisticsAccumulator(accumulatorConfig));
-				localAccumulator = getRuntimeContext().getAccumulator(ACCUMULATOR_NAME+"-"+subTaskIndex);
+				localAccumulator = new OperatorStatisticsAccumulator()
+									.collectMin()
+									.collectMax()
+									.collectCountDistinct()
+									.collectHeavyHitter();
+				getRuntimeContext().addAccumulator(ACCUMULATOR_NAME+"-"+subTaskIndex, localAccumulator);
 			}
 		}
 
@@ -151,4 +152,5 @@ public class OperatorStatsAccumulatorsTest extends AbstractTestBase {
 			globalAccumulator.merge(localAccumulator);
 		}
 	}
+
 }
