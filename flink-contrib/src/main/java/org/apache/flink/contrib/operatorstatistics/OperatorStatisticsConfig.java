@@ -33,13 +33,13 @@ import java.io.Serializable;
 
 public class OperatorStatisticsConfig implements Serializable {
 
-	public static final int COUNTD_BITMAP_SIZE = 1000000;
-	public static final int COUNTD_LOG2M = 20;
+	public static int countDbitmapSize = 1000000;
+	public static int countDlog2m = 20;
 
-	public static final int HEAVY_HITTER_SEED = 121311332;
-	public static final double HEAVY_HITTER_CONFIDENCE = 0.99;
-	public static final double HEAVY_HITTER_FRACTION = 0.05;
-	public static final double HEAVY_HITTER_ERROR = 0.0005;
+	public static int heavyHitterSeed = 121311332;
+	public static double heavyHitterConfidence = 0.99;
+	public static double heavyHitterFraction = 0.05;
+	public static double heavyHitterError = 0.0005;
 
 	public boolean collectMin = false;
 	public boolean collectMax = false;
@@ -85,4 +85,27 @@ public class OperatorStatisticsConfig implements Serializable {
 		COUNT_MIN_SKETCH;
 	}
 
+	public static void setHeavyHitterError(double heavyHitterError) {
+		OperatorStatisticsConfig.heavyHitterError = heavyHitterError;
+	}
+
+	public static void setCountDbitmapSize(int countDbitmapSize) {
+		OperatorStatisticsConfig.countDbitmapSize = countDbitmapSize;
+	}
+
+	public static void setCountDlog2m(int countDlog2m) {
+		OperatorStatisticsConfig.countDlog2m = countDlog2m;
+	}
+
+	public static void setHeavyHitterSeed(int heavyHitterSeed) {
+		OperatorStatisticsConfig.heavyHitterSeed = heavyHitterSeed;
+	}
+
+	public static void setHeavyHitterConfidence(double heavyHitterConfidence) {
+		OperatorStatisticsConfig.heavyHitterConfidence = heavyHitterConfidence;
+	}
+
+	public static void setHeavyHitterFraction(double heavyHitterFraction) {
+		OperatorStatisticsConfig.heavyHitterFraction = heavyHitterFraction;
+	}
 }

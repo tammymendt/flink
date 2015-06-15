@@ -58,23 +58,23 @@ public class OperatorStatistics implements Serializable {
 		this.config = config;
 		if (config.collectCountDistinct){
 			if (config.countDistinctAlgorithm.equals(OperatorStatisticsConfig.CountDistinctAlgorithm.LINEAR_COUNTING)) {
-				countDistinct = new LinearCounting(OperatorStatisticsConfig.COUNTD_BITMAP_SIZE);
+				countDistinct = new LinearCounting(OperatorStatisticsConfig.countDbitmapSize);
 			}
 			if(config.countDistinctAlgorithm.equals(OperatorStatisticsConfig.CountDistinctAlgorithm.HYPERLOGLOG)){
-				countDistinct = new HyperLogLog(OperatorStatisticsConfig.COUNTD_LOG2M);
+				countDistinct = new HyperLogLog(OperatorStatisticsConfig.countDlog2m);
 			}
 		}
 		if (config.collectHeavyHitters){
 			if (config.heavyHitterAlgorithm.equals(OperatorStatisticsConfig.HeavyHitterAlgorithm.LOSSY_COUNTING)){
 				heavyHitter =
-						new LossyCounting(OperatorStatisticsConfig.HEAVY_HITTER_FRACTION, OperatorStatisticsConfig.HEAVY_HITTER_ERROR);
+						new LossyCounting(OperatorStatisticsConfig.heavyHitterFraction, OperatorStatisticsConfig.heavyHitterError);
 			}
 			if (config.heavyHitterAlgorithm.equals(OperatorStatisticsConfig.HeavyHitterAlgorithm.COUNT_MIN_SKETCH)){
 				heavyHitter =
-						new CountMinHeavyHitter(OperatorStatisticsConfig.HEAVY_HITTER_FRACTION,
-								OperatorStatisticsConfig.HEAVY_HITTER_ERROR,
-								OperatorStatisticsConfig.HEAVY_HITTER_CONFIDENCE,
-								OperatorStatisticsConfig.HEAVY_HITTER_SEED);
+						new CountMinHeavyHitter(OperatorStatisticsConfig.heavyHitterFraction,
+								OperatorStatisticsConfig.heavyHitterError,
+								OperatorStatisticsConfig.heavyHitterConfidence,
+								OperatorStatisticsConfig.heavyHitterSeed);
 			}
 		}
 	}
