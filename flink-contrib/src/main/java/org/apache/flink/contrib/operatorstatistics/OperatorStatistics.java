@@ -100,13 +100,17 @@ public class OperatorStatistics implements Serializable {
 	public void merge(OperatorStatistics other) throws RuntimeException {
 
 		if (this.config.collectMin){
-			if (min==null || ((Comparable)this.min).compareTo(other.min) > 0){
-				this.min = other.min;
+			if (other.min!=null) {
+				if (min == null || ((Comparable) other.min).compareTo(min) < 0) {
+					this.min = other.min;
+				}
 			}
 		}
 		if (this.config.collectMax){
-			if (max==null || ((Comparable)this.max).compareTo(other.max) < 0 ){
-				this.max = other.max;
+			if (other.max!=null) {
+				if (max == null || ((Comparable) other.max).compareTo(max) > 0) {
+					this.max = other.max;
+				}
 			}
 		}
 
