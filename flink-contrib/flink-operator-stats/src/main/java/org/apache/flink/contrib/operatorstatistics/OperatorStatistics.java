@@ -202,10 +202,10 @@ public class OperatorStatistics implements Serializable {
 	private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
 		in.defaultReadObject();
 		if (this.config.collectMin){
-			in.readObject();
+			min = in.readObject();
 		}
 		if (this.config.collectMax){
-			in.readObject();
+			max = in.readObject();
 		}
 		if (this.config.collectCountDistinct){
 			if (this.config.countDistinctAlgorithm.equals(OperatorStatisticsConfig.CountDistinctAlgorithm.LINEAR_COUNTING)){
