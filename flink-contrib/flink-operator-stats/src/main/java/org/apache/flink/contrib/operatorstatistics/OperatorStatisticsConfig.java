@@ -33,13 +33,13 @@ import java.io.Serializable;
 
 public class OperatorStatisticsConfig implements Serializable {
 
-	public static final int COUNTD_BITMAP_SIZE = 1000000;
-	public static final int COUNTD_LOG2M = 10;
+	public static int countDbitmap = 1000000;
+	public static int countDlog2m = 10;
 
-	public static final int HEAVY_HITTER_SEED = 121311332;
-	public static final double HEAVY_HITTER_CONFIDENCE = 0.99;
-	public static final double HEAVY_HITTER_FRACTION = 0.05;
-	public static final double HEAVY_HITTER_ERROR = 0.0005;
+	public static int heavyHitterSeed = 121311332;
+	public static double heavyHitterConfidence = 0.99;
+	public static double heavyHitterFraction = 0.05;
+	public static double heavyHitterError = 0.0005;
 
 	public boolean collectMin;
 	public boolean collectMax;
@@ -55,6 +55,15 @@ public class OperatorStatisticsConfig implements Serializable {
 		this.collectHeavyHitters = true;
 		this.countDistinctAlgorithm = CountDistinctAlgorithm.HYPERLOGLOG;
 		this.heavyHitterAlgorithm = HeavyHitterAlgorithm.LOSSY_COUNTING;
+	}
+
+	public OperatorStatisticsConfig(boolean collect){
+		this.collectMin = collect;
+		this.collectMax = collect;
+		this.collectCountDistinct = collect;
+		this.collectHeavyHitters = collect;
+		this.countDistinctAlgorithm = CountDistinctAlgorithm.HYPERLOGLOG; //Defaut algorithm
+		this.heavyHitterAlgorithm = HeavyHitterAlgorithm.LOSSY_COUNTING; //Default algorithm
 	}
 
 	public OperatorStatisticsConfig(CountDistinctAlgorithm countDistinct, HeavyHitterAlgorithm heavyHitter) {
@@ -78,4 +87,51 @@ public class OperatorStatisticsConfig implements Serializable {
 		COUNT_MIN_SKETCH;
 	}
 
+	public void setCountDbitmap(int countDbitmap) {
+		this.countDbitmap = countDbitmap;
+	}
+
+	public void setCountDlog2m(int countDlog2m) {
+		this.countDlog2m = countDlog2m;
+	}
+
+	public void setHeavyHitterConfidence(double heavyHitterConfidence) {
+		this.heavyHitterConfidence = heavyHitterConfidence;
+	}
+
+	public void setHeavyHitterSeed(int heavyHitterSeed) {
+		this.heavyHitterSeed = heavyHitterSeed;
+	}
+
+	public void setHeavyHitterFraction(double heavyHitterFraction) {
+		this.heavyHitterFraction = heavyHitterFraction;
+	}
+
+	public void setHeavyHitterError(double heavyHitterError) {
+		this.heavyHitterError = heavyHitterError;
+	}
+
+	public void setCollectMin(boolean collectMin) {
+		this.collectMin = collectMin;
+	}
+
+	public void setCollectMax(boolean collectMax) {
+		this.collectMax = collectMax;
+	}
+
+	public void setCollectCountDistinct(boolean collectCountDistinct) {
+		this.collectCountDistinct = collectCountDistinct;
+	}
+
+	public void setCollectHeavyHitters(boolean collectHeavyHitters) {
+		this.collectHeavyHitters = collectHeavyHitters;
+	}
+
+	public void setCountDistinctAlgorithm(CountDistinctAlgorithm countDistinctAlgorithm) {
+		this.countDistinctAlgorithm = countDistinctAlgorithm;
+	}
+
+	public void setHeavyHitterAlgorithm(HeavyHitterAlgorithm heavyHitterAlgorithm) {
+		this.heavyHitterAlgorithm = heavyHitterAlgorithm;
+	}
 }
