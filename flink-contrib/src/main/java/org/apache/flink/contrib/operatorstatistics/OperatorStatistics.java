@@ -58,65 +58,68 @@ public class OperatorStatistics implements Serializable {
 		this.config = config;
 		if (config.collectCountDistinct) {
 			if (config.countDistinctAlgorithm.equals(OperatorStatisticsConfig.CountDistinctAlgorithm.LINEAR_COUNTING)) {
-				countDistinct = new LinearCounting(OperatorStatisticsConfig.COUNTD_BITMAP_SIZE);
+				countDistinct = new LinearCounting(OperatorStatisticsConfig.countDbitmap);
 			}
 			if (config.countDistinctAlgorithm.equals(OperatorStatisticsConfig.CountDistinctAlgorithm.HYPERLOGLOG)) {
-				countDistinct = new HyperLogLog(OperatorStatisticsConfig.COUNTD_LOG2M);
+				countDistinct = new HyperLogLog(OperatorStatisticsConfig.countDlog2m);
 			}
 		}
 		if (config.collectHeavyHitters) {
 			if (config.heavyHitterAlgorithm.equals(OperatorStatisticsConfig.HeavyHitterAlgorithm.LOSSY_COUNTING)) {
 				heavyHitter =
-						new LossyCounting(OperatorStatisticsConfig.HEAVY_HITTER_FRACTION, OperatorStatisticsConfig.HEAVY_HITTER_ERROR);
+						new LossyCounting(OperatorStatisticsConfig.heavyHitterFraction, OperatorStatisticsConfig.heavyHitterError);
 			}
 			if (config.heavyHitterAlgorithm.equals(OperatorStatisticsConfig.HeavyHitterAlgorithm.COUNT_MIN_SKETCH)) {
 				heavyHitter =
-						new CountMinHeavyHitter(OperatorStatisticsConfig.HEAVY_HITTER_FRACTION,
-								OperatorStatisticsConfig.HEAVY_HITTER_ERROR,
-								OperatorStatisticsConfig.HEAVY_HITTER_CONFIDENCE,
-								OperatorStatisticsConfig.HEAVY_HITTER_SEED);
+						new CountMinHeavyHitter(OperatorStatisticsConfig.heavyHitterFraction,
+								OperatorStatisticsConfig.heavyHitterError,
+								OperatorStatisticsConfig.heavyHitterConfidence,
+								OperatorStatisticsConfig.heavyHitterSeed);
 			}
 		}
 	}
 
 	public void process(Object tupleObject){
 		if (tupleObject instanceof Comparable) {
-			if ((min == null || ((Comparable) tupleObject).compareTo(min) < 0)) {
-				min = tupleObject;
+			if (config.collectMin && (min == null || ((Comparable) tupleObject).compareTo(min) < 0)) {
+					min = tupleObject;
 			}
-			if ((max == null || ((Comparable) tupleObject).compareTo(max) > 0)) {
-				max = tupleObject;
+			if (config.collectMax && (max == null || ((Comparable) tupleObject).compareTo(max) > 0)) {
+					max = tupleObject;
 			}
 		}
-		countDistinct.offer(tupleObject);
-		heavyHitter.addObject(tupleObject);
+		if (config.collectCountDistinct){
+			countDistinct.offer(tupleObject);
+		}
+		if (config.collectHeavyHitters){
+			heavyHitter.addObject(tupleObject);
+		}
 		cardinality+=1;
 	}
 
 	public void merge(OperatorStatistics other) throws RuntimeException {
-		if (other.min!=null){
-			if (min==null || ((Comparable) other.min).compareTo(min) < 0) {
-				this.min = other.min;
-			}
+		if (config.collectMin & other.min!=null && (min==null || ((Comparable) other.min).compareTo(min) < 0)) {
+			this.min = other.min;
 		}
-		if (other.max!=null){
-			if (max == null || ((Comparable) other.max).compareTo(max) > 0) {
+
+		if (config.collectMax && other.max!=null && (max == null || ((Comparable) other.max).compareTo(max) > 0)) {
 				this.max = other.max;
+		}
+		if (config.collectCountDistinct){
+			try {
+				ICardinality mergedCountDistinct = this.countDistinct.merge(new ICardinality[]{this.countDistinct,other.countDistinct});
+				this.countDistinct = mergedCountDistinct;
+			} catch (CardinalityMergeException e) {
+				throw new RuntimeException("Error merging count distinct structures",e);
 			}
 		}
-		try {
-			ICardinality mergedCountDistinct = this.countDistinct.merge(new ICardinality[]{this.countDistinct,other.countDistinct});
-			this.countDistinct = mergedCountDistinct;
-		} catch (CardinalityMergeException e) {
-			throw new RuntimeException("Error merging count distinct structures",e);
+		if (config.collectHeavyHitters){
+			try {
+				this.heavyHitter.merge(other.heavyHitter);
+			} catch (HeavyHitterMergeException e) {
+				throw new RuntimeException("Error merging heavy hitter structures",e);
+			}
 		}
-
-		try {
-			this.heavyHitter.merge(other.heavyHitter);
-		} catch (HeavyHitterMergeException e) {
-			throw new RuntimeException("Error merging heavy hitter structures",e);
-		}
-
 		this.cardinality+=other.cardinality;
 	}
 
@@ -138,58 +141,83 @@ public class OperatorStatistics implements Serializable {
 
 	@Override
 	public String toString(){
-		String out = "\nmax: "+this.max;
-		out+="\nmin: "+this.min;
-		out+="\ntotal cardinality: "+this.cardinality;
-		out+="\ncount distinct estimate("+this.config.countDistinctAlgorithm+"): "+this.countDistinct.cardinality();
-		out+="\nheavy hitters ("+this.config.heavyHitterAlgorithm +"):";
-		out+="\n"+heavyHitter.toString();
+		String out = "\ntotal cardinality: "+this.cardinality;
+		if (config.collectMax) {
+			out += "\nmax: " + this.max;
+		}
+		if (config.collectMin){
+			out+="\nmin: "+this.min;
+		}
+		if (config.collectCountDistinct){
+			if (config.countDistinctAlgorithm.equals(OperatorStatisticsConfig.CountDistinctAlgorithm.HYPERLOGLOG)){
+				out+="\ncount distinct estimate("+config.countDistinctAlgorithm+
+						"["+config.countDlog2m+"]): "+
+						this.countDistinct.cardinality();
+			}else{
+				out+="\ncount distinct estimate("+config.countDistinctAlgorithm+
+						"["+config.countDbitmap+"]): "+
+						this.countDistinct.cardinality();
+			}
+		}
+		if (config.collectHeavyHitters){
+			out+="\nheavy hitters ("+config.heavyHitterAlgorithm +
+					"["+config.heavyHitterFraction+","+config.heavyHitterError+"]):";
+			out+="\n"+heavyHitter.toString();
+		}
 		return out;
 	}
 
 	@Override
 	public OperatorStatistics clone(){
-		OperatorStatistics clone = new OperatorStatistics(this.config);
-		clone.min = this.min;
-		clone.max = this.max;
-		clone.countDistinct = this.countDistinct;
-		clone.heavyHitter = this.heavyHitter;
+		OperatorStatistics clone = new OperatorStatistics(config);
+		clone.min = min;
+		clone.max = max;
+		clone.countDistinct = countDistinct;
+		clone.heavyHitter = heavyHitter;
 		return clone;
 	}
 
 	private void writeObject(ObjectOutputStream out) throws IOException {
 		out.defaultWriteObject();
-		if (this.config.collectMin){
+		if (config.collectMin){
 			out.writeObject(min);
 		}
-		if (this.config.collectMax){
+		if (config.collectMax){
 			out.writeObject(max);
 		}
-		if (this.config.countDistinctAlgorithm.equals(OperatorStatisticsConfig.CountDistinctAlgorithm.LINEAR_COUNTING)){
-			out.writeObject(countDistinct.getBytes());
-		}else{
-			out.writeObject(countDistinct);
+		if (config.collectCountDistinct){
+			if (config.countDistinctAlgorithm.equals(OperatorStatisticsConfig.CountDistinctAlgorithm.LINEAR_COUNTING)){
+				out.writeObject(countDistinct.getBytes());
+			}else{
+				out.writeObject(countDistinct);
+			}
 		}
-		out.writeObject(heavyHitter);
+		if (config.collectHeavyHitters){
+			out.writeObject(heavyHitter);
+		}
 	}
 
 	private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
 		in.defaultReadObject();
-		if (this.config.collectMin){
+		if (config.collectMin){
 			min = in.readObject();
 		}
-		if (this.config.collectMax){
+		if (config.collectMax){
 			max = in.readObject();
 		}
-		if (this.config.countDistinctAlgorithm.equals(OperatorStatisticsConfig.CountDistinctAlgorithm.LINEAR_COUNTING)){
-			countDistinct = new LinearCounting((byte[])in.readObject());
-		}else{
-			countDistinct = (HyperLogLog)in.readObject();
+		if (config.collectCountDistinct){
+			if (config.countDistinctAlgorithm.equals(OperatorStatisticsConfig.CountDistinctAlgorithm.LINEAR_COUNTING)){
+				countDistinct = new LinearCounting((byte[])in.readObject());
+			}else{
+				countDistinct = (HyperLogLog)in.readObject();
+			}
 		}
-		if (this.config.heavyHitterAlgorithm.equals(OperatorStatisticsConfig.HeavyHitterAlgorithm.LOSSY_COUNTING)){
-			heavyHitter = (LossyCounting)in.readObject();
-		}else{
-			heavyHitter = (CountMinHeavyHitter)in.readObject();
+		if (config.collectHeavyHitters) {
+			if (config.heavyHitterAlgorithm.equals(OperatorStatisticsConfig.HeavyHitterAlgorithm.LOSSY_COUNTING)){
+				heavyHitter = (LossyCounting)in.readObject();
+			}else{
+				heavyHitter = (CountMinHeavyHitter)in.readObject();
+			}
 		}
 	}
 
