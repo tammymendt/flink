@@ -116,6 +116,10 @@ under the License.
 					</execution>
 				</executions>
 				<configuration>
+					<args>
+						<arg>-Xmax-classfile-name</arg>
+						<arg>128</arg>
+					</args>
 					<jvmArgs>
 						<jvmArg>-Xms128m</jvmArg>
 						<jvmArg>-Xmx512m</jvmArg>
