@@ -19,8 +19,8 @@
 package org.apache.flink.contrib.operatorstatistics.heavyhitters;
 
 import java.io.Serializable;
-import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 
 /**
@@ -81,14 +81,11 @@ public class LossyCounting implements HeavyHitter, Serializable{
 	}
 
 	public void updateHeavyHitters(){
-		ArrayList<Object> nonFrequentKeys = new ArrayList<Object>();
-		for (Map.Entry<Object, Counter> entry : heavyHitters.entrySet()){
-			if (entry.getValue().getUpperBound()< bucket){
-				nonFrequentKeys.add(entry.getKey());
+		Iterator it = heavyHitters.entrySet().iterator();
+		while (it.hasNext()) {
+			if (((Map.Entry<Object,Counter>)it.next()).getValue().getUpperBound()< bucket) {
+				it.remove();
 			}
-		}
-		for (Object o:nonFrequentKeys){
-			heavyHitters.remove(o);
 		}
 	}
 

@@ -25,8 +25,8 @@ import java.io.Serializable;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 
 /*
@@ -82,14 +82,11 @@ public class CountMinHeavyHitter implements HeavyHitter, Serializable {
 	}
 
 	private void removeNonFrequent(long minFrequency){
-		ArrayList<Object> nonFrequentKeys = new ArrayList<Object>();
-		for (Map.Entry<Object, Long> entry : heavyHitters.entrySet()){
-			if(entry.getValue()<minFrequency){
-				nonFrequentKeys.add(entry.getKey());
+		Iterator it = heavyHitters.entrySet().iterator();
+		while (it.hasNext()) {
+			if (((Map.Entry<Object,Long>)it.next()).getValue() < minFrequency) {
+				it.remove();
 			}
-		}
-		for (Object o:nonFrequentKeys){
-			heavyHitters.remove(o);
 		}
 	}
 

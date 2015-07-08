@@ -19,12 +19,12 @@
 package org.apache.flink.contrib.operatorstatistics.heavyhitters;
 
 import com.clearspring.analytics.stream.frequency.CountMinSketch;
+import org.apache.commons.math3.distribution.ParetoDistribution;
 import org.junit.Test;
 
+import java.util.Iterator;
 import java.util.Map;
-import java.util.Random;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -33,91 +33,68 @@ import static org.junit.Assert.assertTrue;
  */
 public class CountMinHeavyHitterTest {
 
-	static final double fraction = 0.05;
+	static final double fraction = 0.01;
 	static final double error = 0.005;
 	static final double confidence = 0.99;
 	static final int seed = 7362181;
-	static final Random r = new Random(8567);
+	static final ParetoDistribution p = new ParetoDistribution();
+	static final int cardinality = 1000000;
+	static final int maxScale = 100000;
+	static final long frequency = (int)Math.ceil(cardinality* fraction);
 
 	@Test
 	public void testAccuracy() {
 
-		int numItems = 1000000;
-		long minFrequency = (int)Math.ceil(numItems* fraction);
-
-		int[] xs = new int[numItems];
-		int maxScale = 20;
-
-		for (int i = 0; i < numItems; i++) {
-			double p = r.nextDouble();
-			if (p<0.2){
-				xs[i] = r.nextInt(5);
-			}else {
-				int scale = r.nextInt(maxScale);
-				xs[i] = r.nextInt(1 << scale);
-			}
-		}
+		long[] actualFreq = new long[maxScale];
 
 		CountMinHeavyHitter cmTopK = new CountMinHeavyHitter(fraction,error,confidence,seed);
 
-		for (int x : xs) {
-			cmTopK.addObject(x);
+		for (int i = 0; i < cardinality; i++) {
+			int value = (int)Math.round(p.sample())%maxScale;
+			cmTopK.addObject(value);
+			actualFreq[value]++;
 		}
 
-		long[] actualFreq = new long[1 << maxScale];
-		for (int x : xs) {
-			actualFreq[x]++;
-		}
+/*		System.out.println("Min expected frequency: "+frequency);
+		System.out.println("Found Heavy Hitters: ");
+		Iterator it = cmTopK.getHeavyHitters().entrySet().iterator();
+		while (it.hasNext()) {
+			Map.Entry heavyHitter = (Map.Entry)it.next();
+			System.out.println(heavyHitter.getKey() + " -> " + heavyHitter.getValue() + " -> "+actualFreq[(Integer)heavyHitter.getKey()]);
+		}*/
 
-		for (Map.Entry<Object, Long> heavyHitter : cmTopK.getHeavyHitters().entrySet()) {
-			double ratio = ((double) (heavyHitter.getValue() - actualFreq[(Integer)heavyHitter.getKey()])) / numItems;
-			assertTrue("False positive: " + heavyHitter.getKey() + " estimated: " + heavyHitter.getValue() +
-					" real value: " + actualFreq[(Integer) heavyHitter.getKey()], ratio < error);
-		}
-
-		for (int i = 0; i < actualFreq.length; ++i) {
-			if (actualFreq[i]>=minFrequency){
-				assertTrue("Frequent item not found: item " + i + ", frequency " + actualFreq[i], cmTopK.getHeavyHitters().containsKey(i));
+		for (int i=0;i<actualFreq.length;i++){
+			if (actualFreq[i]>frequency){
+				assertTrue("Heavy Hitter not found :" + i +","+ actualFreq[i], cmTopK.getHeavyHitters().containsKey(i));
 			}
+		}
+
+		Iterator it = cmTopK.getHeavyHitters().entrySet().iterator();
+		while (it.hasNext()) {
+			Map.Entry heavyHitter = (Map.Entry)it.next();
+			Long estimateError = (Long)heavyHitter.getValue() - actualFreq[(Integer)heavyHitter.getKey()];
+			assertTrue("Difference between real frequency and estimate is too large: " + estimateError,
+					estimateError < (error*cardinality));
 		}
 	}
 
 	@Test
 	public void merge() throws CountMinHeavyHitter.CMHeavyHitterMergeException {
+
 		int numToMerge = 5;
-		int cardinality = 1000000;
 
-		double epsOfTotalCount = 0.0001;
-
-		double confidence = 0.99;
-		int seed = 7364181;
-		double fraction = 0.2;
-
-		int maxScale = 20;
-		Random r = new Random();
-
-		CountMinSketch sketchBaseline = new CountMinSketch(epsOfTotalCount, confidence, seed);
+		CountMinSketch sketchBaseline = new CountMinSketch(error, confidence, seed);
 		CountMinHeavyHitter baseline = new CountMinHeavyHitter(sketchBaseline,fraction);
 		CountMinHeavyHitter merged = null;
 
 		CountMinHeavyHitter[] sketches = new CountMinHeavyHitter[numToMerge];
 		for (int i = 0; i < numToMerge; i++) {
-			CountMinSketch cms = new CountMinSketch(epsOfTotalCount, confidence, seed);
+			CountMinSketch cms = new CountMinSketch(error, confidence, seed);
 			sketches[i] = new CountMinHeavyHitter(cms, fraction);
 			for (int j = 0; j < cardinality; j++) {
-				double p = r.nextDouble();
-				if (p<0.2){
-					sketches[i].addObject(1 * i + 1);
-					baseline.addObject(1 * i + 1);
-				}else if (p<0.4) {
-					sketches[i].addObject(50 * i + 1);
-					baseline.addObject(50 * i + 1);
-				}else {
-					int scale = r.nextInt(maxScale);
-					int val = r.nextInt(1 << scale);
-					sketches[i].addObject(val);
-					baseline.addObject(val);
-				}
+				int val = (int)Math.round(p.sample())%maxScale;
+				sketches[i].addObject(val);
+				baseline.addObject(val);
 			}
 			if (i==0){
 				merged = sketches[0];
@@ -126,10 +103,13 @@ public class CountMinHeavyHitterTest {
 			}
 		}
 
+		System.out.println("\nMERGED\n" + merged.toString());
+		System.out.println("\nBASELINE\n" + baseline.toString());
+
 		for (Map.Entry<Object, Long> entry : baseline.getHeavyHitters().entrySet()){
 			assertTrue("Frequent item in baseline is not frequent in merged: " + entry.getKey(), merged.getHeavyHitters().containsKey(entry.getKey()));
-			assertEquals(entry.getValue(), merged.getHeavyHitters().get(entry.getKey()));
 		}
+
 	}
 
 }
