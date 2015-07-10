@@ -76,7 +76,7 @@ public class CountMinHeavyHitter implements HeavyHitter, Serializable {
 			heavyHitters.put(item, estimateCount);
 		}
 
-		if (cardinality%(int)Math.ceil(1/error)==0) {
+		if (cardinality%(long)Math.ceil(1/error)==0) {
 			removeNonFrequent(minFrequency);
 		}
 	}

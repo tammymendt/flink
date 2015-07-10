@@ -34,9 +34,9 @@ public class LossyCounting implements HeavyHitter, Serializable{
 
 	private double fraction;
 	private double error;
-	private int cardinality;
+	private long cardinality;
 	private Map<Object,Counter> heavyHitters;
-	private int bucket;
+	private long bucket;
 
 	private class Counter implements Serializable {
 		long lowerBound;
@@ -47,7 +47,7 @@ public class LossyCounting implements HeavyHitter, Serializable{
 			this.frequencyError = frequencyError;
 		}
 
-		private void updateLowerBound(int count){
+		private void updateLowerBound(long count){
 			lowerBound+=count;
 		}
 
@@ -74,7 +74,7 @@ public class LossyCounting implements HeavyHitter, Serializable{
 		}else{
 			heavyHitters.put(o,new Counter(1, bucket));
 		}
-		if (cardinality%(int)Math.ceil(1/error)==0) {
+		if (cardinality%(long)Math.ceil(1/error)==0) {
 			bucket += 1;
 			updateHeavyHitters();
 		}
@@ -96,7 +96,7 @@ public class LossyCounting implements HeavyHitter, Serializable{
 				throw new HeavyHitterMergeException("Both heavy hitter structures must be identical");
 			}
 			this.cardinality+=lsToMerge.cardinality;
-			this.bucket = (int)Math.floor(cardinality*error);
+			this.bucket = (long)Math.floor(cardinality*error);
 			for (Map.Entry<Object, Counter> entry : lsToMerge.heavyHitters.entrySet()){
 				Counter counter = this.heavyHitters.get(entry.getKey());
 				if (counter==null){
