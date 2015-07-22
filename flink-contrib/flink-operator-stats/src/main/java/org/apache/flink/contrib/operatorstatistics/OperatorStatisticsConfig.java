@@ -33,13 +33,13 @@ import java.io.Serializable;
 
 public class OperatorStatisticsConfig implements Serializable {
 
-	public static int countDbitmap = 1000000;
-	public static int countDlog2m = 10;
+	private int countDbitmap = 1000000;
+	private int countDlog2m = 10;
 
-	public static int heavyHitterSeed = 121311332;
-	public static double heavyHitterConfidence = 0.99;
-	public static double heavyHitterFraction = 0.05;
-	public static double heavyHitterError = 0.0005;
+	private int heavyHitterSeed = 121311332;
+	private double heavyHitterConfidence = 0.99;
+	private double heavyHitterFraction = 0.05;
+	private double heavyHitterError = 0.0005;
 
 	public boolean collectMin;
 	public boolean collectMax;
@@ -133,5 +133,29 @@ public class OperatorStatisticsConfig implements Serializable {
 
 	public void setHeavyHitterAlgorithm(HeavyHitterAlgorithm heavyHitterAlgorithm) {
 		this.heavyHitterAlgorithm = heavyHitterAlgorithm;
+	}
+
+	public int getCountDbitmap() {
+		return countDbitmap;
+	}
+
+	public int getCountDlog2m() {
+		return countDlog2m;
+	}
+
+	public int getHeavyHitterSeed() {
+		return heavyHitterSeed;
+	}
+
+	public double getHeavyHitterConfidence() {
+		return heavyHitterConfidence;
+	}
+
+	public double getHeavyHitterFraction() {
+		return heavyHitterFraction;
+	}
+
+	public double getHeavyHitterError() {
+		return heavyHitterError;
 	}
 }

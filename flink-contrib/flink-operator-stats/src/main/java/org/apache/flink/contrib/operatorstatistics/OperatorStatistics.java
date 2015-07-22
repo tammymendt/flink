@@ -58,23 +58,23 @@ public class OperatorStatistics implements Serializable {
 		this.config = config;
 		if (config.collectCountDistinct) {
 			if (config.countDistinctAlgorithm.equals(OperatorStatisticsConfig.CountDistinctAlgorithm.LINEAR_COUNTING)) {
-				countDistinct = new LinearCounting(OperatorStatisticsConfig.countDbitmap);
+				countDistinct = new LinearCounting(config.getCountDbitmap());
 			}
 			if (config.countDistinctAlgorithm.equals(OperatorStatisticsConfig.CountDistinctAlgorithm.HYPERLOGLOG)) {
-				countDistinct = new HyperLogLog(OperatorStatisticsConfig.countDlog2m);
+				countDistinct = new HyperLogLog(config.getCountDlog2m());
 			}
 		}
 		if (config.collectHeavyHitters) {
 			if (config.heavyHitterAlgorithm.equals(OperatorStatisticsConfig.HeavyHitterAlgorithm.LOSSY_COUNTING)) {
 				heavyHitter =
-						new LossyCounting(OperatorStatisticsConfig.heavyHitterFraction, OperatorStatisticsConfig.heavyHitterError);
+						new LossyCounting(config.getHeavyHitterFraction(), config.getHeavyHitterError());
 			}
 			if (config.heavyHitterAlgorithm.equals(OperatorStatisticsConfig.HeavyHitterAlgorithm.COUNT_MIN_SKETCH)) {
 				heavyHitter =
-						new CountMinHeavyHitter(OperatorStatisticsConfig.heavyHitterFraction,
-								OperatorStatisticsConfig.heavyHitterError,
-								OperatorStatisticsConfig.heavyHitterConfidence,
-								OperatorStatisticsConfig.heavyHitterSeed);
+						new CountMinHeavyHitter(config.getHeavyHitterFraction(),
+								config.getHeavyHitterError(),
+								config.getHeavyHitterConfidence(),
+								config.getHeavyHitterSeed());
 			}
 		}
 	}
@@ -151,17 +151,17 @@ public class OperatorStatistics implements Serializable {
 		if (config.collectCountDistinct){
 			if (config.countDistinctAlgorithm.equals(OperatorStatisticsConfig.CountDistinctAlgorithm.HYPERLOGLOG)){
 				out+="\ncount distinct estimate("+config.countDistinctAlgorithm+
-						"["+config.countDlog2m+"]): "+
+						"["+config.getCountDlog2m()+"]): "+
 						this.countDistinct.cardinality();
 			}else{
 				out+="\ncount distinct estimate("+config.countDistinctAlgorithm+
-						"["+config.countDbitmap+"]): "+
+						"["+config.getCountDbitmap()+"]): "+
 						this.countDistinct.cardinality();
 			}
 		}
 		if (config.collectHeavyHitters){
 			out+="\nheavy hitters ("+config.heavyHitterAlgorithm +
-					"["+config.heavyHitterFraction+","+config.heavyHitterError+"]):";
+					"["+config.getHeavyHitterFraction()+","+config.getHeavyHitterError()+"]):";
 			out+="\n"+heavyHitter.toString();
 		}
 		return out;
