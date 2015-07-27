@@ -160,9 +160,18 @@ public class OperatorStatistics implements Serializable {
 			}
 		}
 		if (config.collectHeavyHitters){
-			out+="\nheavy hitters ("+config.heavyHitterAlgorithm +
-					"["+config.getHeavyHitterFraction()+","+config.getHeavyHitterError()+"]):";
-			out+="\n"+heavyHitter.toString();
+			if (config.countDistinctAlgorithm.equals(OperatorStatisticsConfig.HeavyHitterAlgorithm.LOSSY_COUNTING)) {
+				out += "\nheavy hitters (" + config.heavyHitterAlgorithm +
+						"[" + config.getHeavyHitterFraction() + ", "
+							+ config.getHeavyHitterError() + "]):";
+				out += "\n" + heavyHitter.toString();
+			}else {
+				out += "\nheavy hitters (" + config.heavyHitterAlgorithm +
+						"[" + config.getHeavyHitterFraction() + ", "
+							+ config.getHeavyHitterError() + ", "
+							+ config.getHeavyHitterConfidence() + "]):";
+				out += "\n" + heavyHitter.toString();
+			}
 		}
 		return out;
 	}
