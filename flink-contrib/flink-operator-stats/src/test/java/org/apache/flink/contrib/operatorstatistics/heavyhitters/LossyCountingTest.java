@@ -23,9 +23,7 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Iterator;
 import java.util.Map;
-import java.util.Random;
 
 import static org.junit.Assert.assertTrue;
 
@@ -42,8 +40,6 @@ public class LossyCountingTest {
 	static final ParetoDistribution p = new ParetoDistribution();
 	static final int cardinality = 1000000;
 	static final int maxScale = 100000;
-	static final long frequency = (int)Math.ceil(cardinality* fraction);
-	static final long minFrequency = (int)Math.ceil(cardinality* (fraction-error));
 
 	@Test
 	public void testAccuracy() {
@@ -67,14 +63,18 @@ public class LossyCountingTest {
 			System.out.println(heavyHitter.getKey() + " -> " + heavyHitter.getValue());
 		}*/
 
+		Map<Object,Long> heavyHitters = lossyCounting.getHeavyHitters();
+		long frequency = (long)Math.ceil(cardinality* fraction);
+		long minFrequency = (long)Math.ceil(cardinality* (fraction-error));
+
 		for (int i = 0; i < actualFreq.length; ++i) {
 			if (actualFreq[i]>=frequency) {
-				assertTrue("All items with freq. > s.n will be found. Item " + i + ". Real freq. " + actualFreq[i]+" Expected freq."+frequency, lossyCounting.getHeavyHitters().containsKey(i));
+				assertTrue("All items with freq. > s.n will be found. Item " + i + ". Real freq. " + actualFreq[i] + " Expected freq." + frequency, heavyHitters.containsKey(i));
 			}
-			if (lossyCounting.getHeavyHitters().containsKey(i)){
+			if (heavyHitters.containsKey(i)){
 				assertTrue("no item with freq. < (s-e).n will be found. Item " + i + ". Real freq. " + actualFreq[i]+" Min freq."+ minFrequency, actualFreq[i]>=minFrequency);
-				assertTrue("the estimated freq. underestimates the true freq. by < e.n. Real freq. " + actualFreq[i] + " Lower bound "+lossyCounting.getHeavyHitters().get(i),
-						Math.abs(lossyCounting.getHeavyHitters().get(i)-actualFreq[i]) < error*cardinality);
+				assertTrue("the estimated freq. underestimates the true freq. by < e.n. Real freq. " + actualFreq[i] + " Lower bound "+heavyHitters.get(i),
+						Math.abs(heavyHitters.get(i)-actualFreq[i]) < error*cardinality);
 			}
 		}
 	}
@@ -82,39 +82,44 @@ public class LossyCountingTest {
 	@Test
 	public void merge() throws HeavyHitterMergeException {
 		int numToMerge = 5;
-
-		LossyCounting baseline = new LossyCounting(fraction,error);
 		LossyCounting merged = new LossyCounting(fraction,error);
 		LossyCounting[] sketches = new LossyCounting[numToMerge];
 
 		long[] actualFreq = new long[maxScale];
+		long totalCardinality = 0;
 
 		for (int i = 0; i < numToMerge; i++) {
-			sketches[i] = new LossyCounting(error*2,error);
+			sketches[i] = new LossyCounting(fraction,error);
 			for (int j = 0; j < cardinality; j++) {
 				int val = (int)Math.round(p.sample())%10000;
 				sketches[i].addObject(val);
-				baseline.addObject(val);
 				actualFreq[val]++;
+				totalCardinality++;
 			}
 			merged.merge(sketches[i]);
 		}
 
 		System.out.println("\nMERGED\n" + merged.toString());
-		System.out.println("\nBASELINE\n" + baseline.toString());
 
-		for (Map.Entry<Object, Long> entry : baseline.getHeavyHitters().entrySet()){
-			assertTrue("Frequent item in baseline is not detected in merged: " + entry.getKey(), merged.getHeavyHitters().containsKey(entry.getKey()));
-		}
+		Map<Object,Long> mergedHeavyHitters = merged.getHeavyHitters();
+		long frequency = (long)(totalCardinality*fraction);
+		long minFrequency = (long)(totalCardinality*(fraction-error));
+
+		System.out.println("Frequency Threshold:" + frequency);
+		System.out.println("False positive Threshold:" + minFrequency);
+		System.out.println("Frequency of 14:" + actualFreq[14]);
+
+		System.out.println("Real frequent items: ");
 
 		for (int i = 0; i < actualFreq.length; ++i) {
 			if (actualFreq[i]>=frequency) {
-				assertTrue("All items with freq. > s.n will be found. Item " + i + ". Real freq. " + actualFreq[i]+" Expected freq."+frequency, merged.getHeavyHitters().containsKey(i));
+				System.out.println(i+": "+actualFreq[i]);
+				assertTrue("All items with freq. > s.n will be found. Item " + i + ". Real freq. " + actualFreq[i]+" Expected freq."+ frequency, mergedHeavyHitters.containsKey(i));
 			}
-			if (merged.getHeavyHitters().containsKey(i)){
+			if (mergedHeavyHitters.containsKey(i)){
 				assertTrue("no item with freq. < (s-e).n will be found. Item " + i + ". Real freq. " + actualFreq[i]+" Min freq."+ minFrequency, actualFreq[i]>=minFrequency);
-				assertTrue("the estimated freq. underestimates the true freq. by < e.n. Real freq. " + actualFreq[i] + " Lower bound "+merged.getHeavyHitters().get(i),
-						Math.abs(merged.getHeavyHitters().get(i)-actualFreq[i]) < error*cardinality);
+				assertTrue("the estimated freq. underestimates the true freq. by < e.n. Real freq. " + actualFreq[i] + " Lower bound "+mergedHeavyHitters.get(i),
+						Math.abs(mergedHeavyHitters.get(i)-actualFreq[i]) < error*cardinality);
 			}
 		}
 
